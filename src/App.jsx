@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "cashflow-budget-app-v2";
+const STORAGE_KEY = "cashflow-budget-app-v3";
 
 const styles = {
   page: {
@@ -10,7 +10,7 @@ const styles = {
     fontFamily: "Arial, Helvetica, sans-serif",
   },
   container: {
-    maxWidth: 1200,
+    maxWidth: 1280,
     margin: "0 auto",
     padding: 20,
   },
@@ -73,9 +73,14 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: 14,
   },
+  grid3: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: 16,
+  },
   grid2: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
     gap: 16,
   },
   metric: {
@@ -111,6 +116,7 @@ const styles = {
     padding: "10px 8px",
     borderBottom: "1px solid #dbe3ef",
     color: "#64748b",
+    whiteSpace: "nowrap",
   },
   td: {
     padding: "10px 8px",
@@ -142,6 +148,11 @@ const styles = {
     color: "#fff",
     border: "1px solid #dc2626",
   },
+  buttonSoft: {
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
+  },
   input: {
     width: "100%",
     padding: "11px 12px",
@@ -166,37 +177,48 @@ const styles = {
     padding: 14,
     marginBottom: 12,
   },
+  actionWrap: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+    marginTop: 10,
+  },
+  infoBox: {
+    background: "#f8fafc",
+    border: "1px solid #dbe3ef",
+    borderRadius: 16,
+    padding: 14,
+  },
 };
 
 const seedRules = [
-  { id: "r1", title: "Miete 1", type: "income", amount: 683, frequency: "monthly", day: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Mieteinnahmen", account: "Hauptkonto", note: "monatlich" },
-  { id: "r2", title: "Miete 2", type: "income", amount: 175, frequency: "monthly", day: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Mieteinnahmen", account: "Hauptkonto", note: "monatlich" },
-  { id: "r3", title: "Miete 3", type: "income", amount: 150, frequency: "monthly", day: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Mieteinnahmen", account: "Hauptkonto", note: "monatlich" },
-  { id: "r4", title: "Wartung EDV", type: "income", amount: 300, frequency: "monthly", day: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Nebeneinkünfte", account: "Hauptkonto", note: "monatlich" },
-  { id: "r5", title: "Gehalt Thomas", type: "income", amount: 3700, frequency: "monthly", day: 28, startMonth: "2026-04", endMonth: "2027-03", category: "Gehalt", account: "Hauptkonto", note: "monatlich" },
-  { id: "r6", title: "13./14. Gehalt", type: "income", amount: 3700, frequency: "customMonths", months: ["2026-06", "2026-12"], day: 15, startMonth: "2026-04", endMonth: "2027-03", category: "Gehalt", account: "Hauptkonto", note: "Juni und Dezember" },
-  { id: "r7", title: "Prämie Thomas", type: "income", amount: 15000, frequency: "customMonths", months: ["2027-02"], day: 28, startMonth: "2026-04", endMonth: "2027-03", category: "Prämie", account: "Hauptkonto", note: "Ende Februar" },
-  { id: "r8", title: "Wochengeld Natalya", type: "income", amount: 1790, frequency: "customMonths", months: ["2026-04", "2026-05"], day: 25, startMonth: "2026-04", endMonth: "2027-03", category: "Familie", account: "Hauptkonto", note: "April und Mai" },
-  { id: "r9", title: "Kinderbetreuungsgeld", type: "income", amount: 1432, frequency: "monthly", day: 20, startMonth: "2026-06", endMonth: "2027-03", category: "Familie", account: "Hauptkonto", note: "Annahme" },
-  { id: "r10", title: "Familienbeihilfe + Kinderabsetzbetrag", type: "income", amount: 209.3, frequency: "monthly", day: 10, startMonth: "2026-04", endMonth: "2027-03", category: "Familie", account: "Hauptkonto", note: "monatlich" },
-  { id: "r11", title: "Rückzahlung Dolbilov", type: "income", amount: 750, frequency: "everyOtherMonth", day: 5, startMonth: "2026-04", endMonth: "2027-02", category: "Privatkredit", account: "Hauptkonto", note: "alle 2 Monate" },
-
-  { id: "r12", title: "Kredit Haus", type: "expense", amount: 1250, frequency: "monthly", day: 3, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich" },
-  { id: "r13", title: "Kredit Wohnung", type: "expense", amount: 580, frequency: "monthly", day: 3, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich" },
-  { id: "r14", title: "Betriebskosten Wohnung", type: "expense", amount: 245, frequency: "monthly", day: 3, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich" },
-  { id: "r15", title: "Heizung Wohnung", type: "expense", amount: 90, frequency: "monthly", day: 3, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich" },
-  { id: "r16", title: "Strom Haus", type: "expense", amount: 325, frequency: "monthly", day: 12, startMonth: "2026-04", endMonth: "2027-03", category: "Haus", account: "Hauptkonto", note: "Ø aus 3.900/Jahr" },
-  { id: "r17", title: "BK Haus", type: "expense", amount: 166.67, frequency: "monthly", day: 12, startMonth: "2026-04", endMonth: "2027-03", category: "Haus", account: "Hauptkonto", note: "Rücklage" },
-  { id: "r18", title: "Versicherung E-Golf", type: "expense", amount: 70, frequency: "monthly", day: 8, startMonth: "2026-04", endMonth: "2027-03", category: "Auto", account: "Hauptkonto", note: "monatlich" },
-  { id: "r19", title: "Pickerl E-Golf", type: "expense", amount: 700, frequency: "customMonths", months: ["2026-04"], day: 8, startMonth: "2026-04", endMonth: "2027-03", category: "Auto", account: "Hauptkonto", note: "einmalig April" },
-  { id: "r20", title: "Eigenheimversicherung", type: "expense", amount: 90, frequency: "monthly", day: 8, startMonth: "2026-04", endMonth: "2027-03", category: "Versicherung", account: "Hauptkonto", note: "monatlich" },
-  { id: "r21", title: "Ablebensversicherung", type: "expense", amount: 34, frequency: "monthly", day: 8, startMonth: "2026-04", endMonth: "2027-03", category: "Versicherung", account: "Hauptkonto", note: "monatlich" },
-  { id: "r22", title: "Fitness", type: "expense", amount: 34, frequency: "monthly", day: 8, startMonth: "2026-04", endMonth: "2026-12", category: "Freizeit", account: "Hauptkonto", note: "endet 31.12.2026" },
-  { id: "r23", title: "Handy + Internet", type: "expense", amount: 110, frequency: "monthly", day: 15, startMonth: "2026-04", endMonth: "2027-03", category: "Kommunikation", account: "Hauptkonto", note: "monatlich" },
-  { id: "r24", title: "SVS Rückzahlung", type: "expense", amount: 85, frequency: "monthly", day: 15, startMonth: "2026-04", endMonth: "2026-10", category: "Versicherung", account: "Hauptkonto", note: "bis Oktober 2026" },
-  { id: "r25", title: "Haushaltskonto", type: "expense", amount: 530, frequency: "weekly", weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Lebensmittel", account: "Haushaltskonto", note: "wöchentlich" },
-  { id: "r26", title: "Quartalszinsen Konto 1", type: "expense", amount: 356.25, frequency: "customMonths", months: ["2026-06", "2026-09", "2026-12"], day: 30, startMonth: "2026-04", endMonth: "2027-03", category: "Zinsen", account: "Konto 1", note: "Modellwert" },
-  { id: "r27", title: "Quartalszinsen Konto 2", type: "expense", amount: 30, frequency: "customMonths", months: ["2026-06"], day: 30, startMonth: "2026-04", endMonth: "2027-03", category: "Zinsen", account: "Konto 2", note: "Modellwert" },
+  { id: "r1", title: "Miete 1", type: "income", amount: 683, frequency: "monthly", day: 1, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Mieteinnahmen", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r2", title: "Miete 2", type: "income", amount: 175, frequency: "monthly", day: 1, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Mieteinnahmen", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r3", title: "Miete 3", type: "income", amount: 150, frequency: "monthly", day: 1, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Mieteinnahmen", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r4", title: "Wartung EDV", type: "income", amount: 300, frequency: "monthly", day: 1, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Nebeneinkünfte", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r5", title: "Gehalt Thomas", type: "income", amount: 3700, frequency: "monthly", day: 28, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Gehalt", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r6", title: "13./14. Gehalt", type: "income", amount: 3700, frequency: "customMonths", months: ["2026-06", "2026-12"], day: 15, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Gehalt", account: "Hauptkonto", note: "Juni und Dezember" },
+  { id: "r7", title: "Prämie Thomas", type: "income", amount: 15000, frequency: "customMonths", months: ["2027-02"], day: 28, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Prämie", account: "Hauptkonto", note: "Ende Februar" },
+  { id: "r8", title: "Wochengeld Natalya", type: "income", amount: 1790, frequency: "customMonths", months: ["2026-04", "2026-05"], day: 25, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Familie", account: "Hauptkonto", note: "April und Mai" },
+  { id: "r9", title: "Kinderbetreuungsgeld", type: "income", amount: 1432, frequency: "monthly", day: 20, weekday: 1, startMonth: "2026-06", endMonth: "2027-03", category: "Familie", account: "Hauptkonto", note: "Annahme", months: [] },
+  { id: "r10", title: "Familienbeihilfe + Kinderabsetzbetrag", type: "income", amount: 209.3, frequency: "monthly", day: 10, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Familie", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r11", title: "Rückzahlung Dolbilov", type: "income", amount: 750, frequency: "everyOtherMonth", day: 5, weekday: 1, startMonth: "2026-04", endMonth: "2027-02", category: "Privatkredit", account: "Hauptkonto", note: "alle 2 Monate", months: [] },
+  { id: "r12", title: "Kredit Haus", type: "expense", amount: 1250, frequency: "monthly", day: 3, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r13", title: "Kredit Wohnung", type: "expense", amount: 580, frequency: "monthly", day: 3, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r14", title: "Betriebskosten Wohnung", type: "expense", amount: 245, frequency: "monthly", day: 3, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r15", title: "Heizung Wohnung", type: "expense", amount: 90, frequency: "monthly", day: 3, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Wohnen", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r16", title: "Strom Haus", type: "expense", amount: 325, frequency: "monthly", day: 12, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Haus", account: "Hauptkonto", note: "Ø aus 3.900/Jahr", months: [] },
+  { id: "r17", title: "BK Haus", type: "expense", amount: 166.67, frequency: "monthly", day: 12, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Haus", account: "Hauptkonto", note: "Rücklage", months: [] },
+  { id: "r18", title: "Versicherung E-Golf", type: "expense", amount: 70, frequency: "monthly", day: 8, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Auto", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r19", title: "Pickerl E-Golf", type: "expense", amount: 700, frequency: "customMonths", months: ["2026-04"], day: 8, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Auto", account: "Hauptkonto", note: "einmalig April" },
+  { id: "r20", title: "Eigenheimversicherung", type: "expense", amount: 90, frequency: "monthly", day: 8, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Versicherung", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r21", title: "Ablebensversicherung", type: "expense", amount: 34, frequency: "monthly", day: 8, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Versicherung", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r22", title: "Fitness", type: "expense", amount: 34, frequency: "monthly", day: 8, weekday: 1, startMonth: "2026-04", endMonth: "2026-12", category: "Freizeit", account: "Hauptkonto", note: "endet 31.12.2026", months: [] },
+  { id: "r23", title: "Handy + Internet", type: "expense", amount: 110, frequency: "monthly", day: 15, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Kommunikation", account: "Hauptkonto", note: "monatlich", months: [] },
+  { id: "r24", title: "SVS Rückzahlung", type: "expense", amount: 85, frequency: "monthly", day: 15, weekday: 1, startMonth: "2026-04", endMonth: "2026-10", category: "Versicherung", account: "Hauptkonto", note: "bis Oktober 2026", months: [] },
+  { id: "r25", title: "Haushaltskonto", type: "expense", amount: 530, frequency: "weekly", weekday: 1, day: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Lebensmittel", account: "Haushaltskonto", note: "wöchentlich", months: [] },
+  { id: "r26", title: "Quartalszinsen Konto 1", type: "expense", amount: 356.25, frequency: "customMonths", months: ["2026-06", "2026-09", "2026-12"], day: 30, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Zinsen", account: "Konto 1", note: "Modellwert" },
+  { id: "r27", title: "Quartalszinsen Konto 2", type: "expense", amount: 30, frequency: "customMonths", months: ["2026-06"], day: 30, weekday: 1, startMonth: "2026-04", endMonth: "2027-03", category: "Zinsen", account: "Konto 2", note: "Modellwert" },
 ];
 
 const seedDebtAccounts = [
@@ -375,6 +397,89 @@ function badgeStyle(status) {
   return { ...styles.badgeBase, ...(map[status] || map.geplant) };
 }
 
+function signedAmount(type, amount) {
+  return type === "income" ? Number(amount || 0) : -Number(amount || 0);
+}
+
+function describeFrequency(rule) {
+  if (rule.frequency === "monthly") return `monatlich am ${rule.day}.`;
+  if (rule.frequency === "weekly") return `wöchentlich am ${weekdayLabel(rule.weekday)}`;
+  if (rule.frequency === "everyOtherMonth") return `alle 2 Monate am ${rule.day}.`;
+  if (rule.frequency === "customMonths") return `in Monaten: ${(rule.months || []).join(", ")}`;
+  return rule.frequency;
+}
+
+function weekdayLabel(value) {
+  const names = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+  return names[Number(value)] || "Montag";
+}
+
+function normalizeRule(rule) {
+  return {
+    ...rule,
+    amount: Number(rule.amount || 0),
+    day: Number(rule.day || 1),
+    weekday: Number(rule.weekday ?? 1),
+    months: Array.isArray(rule.months) ? rule.months : [],
+  };
+}
+
+function emptyForm(currentMonth, planningEnd) {
+  return {
+    id: null,
+    title: "",
+    type: "expense",
+    amount: "",
+    frequency: "monthly",
+    day: 1,
+    weekday: 1,
+    startMonth: currentMonth,
+    endMonth: planningEnd,
+    category: "Sonstiges",
+    account: "Hauptkonto",
+    note: "",
+    customMonthsText: "",
+  };
+}
+
+function ruleToForm(rule) {
+  return {
+    id: rule.id,
+    title: rule.title,
+    type: rule.type,
+    amount: String(rule.amount),
+    frequency: rule.frequency,
+    day: rule.day ?? 1,
+    weekday: rule.weekday ?? 1,
+    startMonth: rule.startMonth,
+    endMonth: rule.endMonth,
+    category: rule.category,
+    account: rule.account,
+    note: rule.note || "",
+    customMonthsText: (rule.months || []).join(", "),
+  };
+}
+
+function formToRule(form) {
+  return normalizeRule({
+    id: form.id || uid("rule"),
+    title: form.title.trim(),
+    type: form.type,
+    amount: Number(form.amount),
+    frequency: form.frequency,
+    day: Number(form.day || 1),
+    weekday: Number(form.weekday || 1),
+    startMonth: form.startMonth,
+    endMonth: form.endMonth,
+    category: form.category.trim() || "Sonstiges",
+    account: form.account.trim() || "Hauptkonto",
+    note: form.note || "",
+    months: form.frequency === "customMonths"
+      ? form.customMonthsText.split(",").map((x) => x.trim()).filter(Boolean)
+      : [],
+  });
+}
+
 function Card({ title, subtitle, children, extra }) {
   return (
     <div style={styles.card}>
@@ -400,6 +505,32 @@ function Metric({ label, value, hint }) {
   );
 }
 
+function BarChart({ title, subtitle, items, positiveColor = "#1d4ed8", negativeColor = "#dc2626" }) {
+  const max = Math.max(...items.map((item) => Math.abs(item.value)), 1);
+  return (
+    <Card title={title} subtitle={subtitle}>
+      {items.length === 0 ? <div style={styles.smallText}>Keine Daten vorhanden.</div> : null}
+      <div style={{ display: "grid", gap: 10 }}>
+        {items.map((item) => {
+          const width = `${(Math.abs(item.value) / max) * 100}%`;
+          const color = item.value >= 0 ? positiveColor : negativeColor;
+          return (
+            <div key={item.label}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</div>
+                <div style={{ fontSize: 13 }}>{typeof item.formatter === "function" ? item.formatter(item.value) : formatCurrency(item.value)}</div>
+              </div>
+              <div style={{ height: 12, background: "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ width, height: 12, background: color }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 export default function App() {
   const [app, setApp] = useState(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -407,17 +538,15 @@ export default function App() {
   });
   const [tab, setTab] = useState("dashboard");
   const [selectedMonth, setSelectedMonth] = useState(app.appSettings.currentMonth);
-  const [form, setForm] = useState({
+  const [ruleForm, setRuleForm] = useState(() => emptyForm(app.appSettings.currentMonth, app.appSettings.planningEnd));
+  const [manualForm, setManualForm] = useState({
     title: "",
     type: "expense",
     amount: "",
     category: "Sonstiges",
-    frequency: "monthly",
-    day: 1,
-    startMonth: selectedMonth,
-    endMonth: app.appSettings.planningEnd,
     account: "Hauptkonto",
     note: "",
+    date: createDate(app.appSettings.currentMonth, 15),
   });
 
   const today = new Date();
@@ -427,10 +556,14 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
   }, [app]);
 
+  useEffect(() => {
+    setManualForm((prev) => ({ ...prev, date: createDate(selectedMonth, 15) }));
+  }, [selectedMonth]);
+
   const months = useMemo(() => monthRange(app.appSettings.currentMonth, app.appSettings.planningEnd), [app.appSettings.currentMonth, app.appSettings.planningEnd]);
 
   const transactions = useMemo(() => {
-    const fromRules = app.rules.flatMap((rule) => expandRule(rule, months));
+    const fromRules = app.rules.flatMap((rule) => expandRule(normalizeRule(rule), months));
     const manual = (app.manualTransactions || []).filter((tx) => months.includes(tx.month));
     return [...fromRules, ...manual].sort((a, b) => a.date.localeCompare(b.date));
   }, [app.rules, app.manualTransactions, months]);
@@ -449,13 +582,61 @@ export default function App() {
 
   const monthView = monthlyViews.find((m) => m.month === selectedMonth) || monthlyViews[0];
   const monthTxs = monthView?.txs || [];
-  const openTxs = monthTxs.filter((tx) => statusForTransaction(tx, app.confirmed, todayStr) !== "bestätigt");
+
   const dueThisWeek = transactions.filter((tx) => {
     const d = new Date(tx.date);
     const diff = (d - today) / (1000 * 60 * 60 * 24);
     return diff >= -1 && diff <= 7 && statusForTransaction(tx, app.confirmed, todayStr) !== "bestätigt";
   });
+
+  const openTxs = monthTxs.filter((tx) => statusForTransaction(tx, app.confirmed, todayStr) !== "bestätigt");
   const totalDebt = sum(app.debtAccounts, (d) => Math.abs(d.balance));
+
+  const expenseByCategory = useMemo(() => {
+    const map = new Map();
+    monthTxs.filter((tx) => tx.type === "expense").forEach((tx) => {
+      const current = map.get(tx.category) || 0;
+      map.set(tx.category, current + getActualOrPlanned(tx, app.confirmed));
+    });
+    return [...map.entries()]
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [monthTxs, app.confirmed]);
+
+  const monthlyNetBars = useMemo(() => {
+    return monthlyViews.map((row) => ({ label: prettyMonth(row.month), value: row.net }));
+  }, [monthlyViews]);
+
+  const varianceData = useMemo(() => {
+    const relevant = monthTxs.filter((tx) => app.confirmed[tx.id] || statusForTransaction(tx, app.confirmed, todayStr) === "überfällig");
+    const rows = relevant.map((tx) => {
+      const status = statusForTransaction(tx, app.confirmed, todayStr);
+      const planned = signedAmount(tx.type, tx.plannedAmount);
+      const actualValue = app.confirmed[tx.id]?.status === "confirmed"
+        ? signedAmount(tx.type, app.confirmed[tx.id]?.actualAmount ?? tx.plannedAmount)
+        : app.confirmed[tx.id]?.status === "skipped"
+          ? 0
+          : planned;
+      const variance = actualValue - planned;
+      return { ...tx, status, plannedSigned: planned, actualSigned: actualValue, variance };
+    });
+    const totalVariance = sum(rows, (row) => row.variance);
+    const overdueIncomes = rows.filter((row) => row.status === "überfällig" && row.type === "income");
+    const remainingHousehold = monthTxs.filter((tx) => tx.category === "Lebensmittel" && !app.confirmed[tx.id]);
+    return { rows, totalVariance, overdueIncomes, remainingHouseholdCount: remainingHousehold.length };
+  }, [monthTxs, app.confirmed, todayStr]);
+
+  function recommendationText() {
+    const diff = varianceData.totalVariance;
+    if (diff < 0) {
+      const perRemaining = varianceData.remainingHouseholdCount > 0 ? Math.abs(diff) / varianceData.remainingHouseholdCount : Math.abs(diff);
+      return `Du liegst aktuell ${formatCurrency(Math.abs(diff))} unter Plan. Markiere ausfallende Einnahmen mit „Skip“ oder Betrag 0. Empfehlung: Haushaltskonto für die verbleibenden Wochen um ca. ${formatCurrency(perRemaining)} je Auszahlung senken oder denselben Betrag aus Reserve/Sondertilgung herausnehmen.`;
+    }
+    if (diff > 0) {
+      return `Du liegst aktuell ${formatCurrency(diff)} über Plan. Empfehlung: den Überschuss direkt als Sondertilgung auf Konto 2 und danach Konto 1 verwenden oder als Reserve stehen lassen.`;
+    }
+    return "Du liegst aktuell im Plan. Sobald du Abweichungen bestätigst oder überspringst, passt sich die Prognose automatisch an.";
+  }
 
   function confirmTransaction(tx, customAmount) {
     setApp((prev) => ({
@@ -506,6 +687,37 @@ export default function App() {
     localStorage.removeItem(STORAGE_KEY);
     setApp(seedState);
     setSelectedMonth(seedState.appSettings.currentMonth);
+    setRuleForm(emptyForm(seedState.appSettings.currentMonth, seedState.appSettings.planningEnd));
+  }
+
+  function startEditRule(rule) {
+    setRuleForm(ruleToForm(normalizeRule(rule)));
+    setTab("regeln");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelRuleEdit() {
+    setRuleForm(emptyForm(app.appSettings.currentMonth, app.appSettings.planningEnd));
+  }
+
+  function saveRule(e) {
+    e.preventDefault();
+    const rule = formToRule(ruleForm);
+    if (!rule.title) return;
+    setApp((prev) => {
+      const exists = prev.rules.some((r) => r.id === rule.id);
+      return {
+        ...prev,
+        rules: exists ? prev.rules.map((r) => (r.id === rule.id ? rule : r)) : [...prev.rules, rule],
+      };
+    });
+    cancelRuleEdit();
+  }
+
+  function deleteRule(ruleId) {
+    if (!window.confirm("Regel löschen?")) return;
+    setApp((prev) => ({ ...prev, rules: prev.rules.filter((r) => r.id !== ruleId) }));
+    if (ruleForm.id === ruleId) cancelRuleEdit();
   }
 
   function addManualTransaction(e) {
@@ -513,49 +725,24 @@ export default function App() {
     const tx = {
       id: uid("manual"),
       ruleId: null,
-      month: selectedMonth,
-      date: createDate(selectedMonth, 15),
-      title: form.title,
-      type: form.type,
-      plannedAmount: Number(form.amount),
+      month: manualForm.date.slice(0, 7),
+      date: manualForm.date,
+      title: manualForm.title,
+      type: manualForm.type,
+      plannedAmount: Number(manualForm.amount),
       actualAmount: null,
-      category: form.category,
-      account: form.account,
-      note: form.note,
+      category: manualForm.category,
+      account: manualForm.account,
+      note: manualForm.note,
       source: "manual",
     };
     setApp((prev) => ({ ...prev, manualTransactions: [...prev.manualTransactions, tx] }));
-    setForm({ ...form, title: "", amount: "", note: "" });
-  }
-
-  function addRecurringRule(e) {
-    e.preventDefault();
-    const rule = {
-      id: uid("rule"),
-      title: form.title,
-      type: form.type,
-      amount: Number(form.amount),
-      frequency: form.frequency,
-      day: Number(form.day || 1),
-      weekday: 1,
-      startMonth: form.startMonth,
-      endMonth: form.endMonth,
-      category: form.category,
-      account: form.account,
-      note: form.note,
-    };
-    setApp((prev) => ({ ...prev, rules: [...prev.rules, rule] }));
-    setForm({ ...form, title: "", amount: "", note: "" });
-  }
-
-  function deleteRule(ruleId) {
-    if (!window.confirm("Regel löschen?")) return;
-    setApp((prev) => ({ ...prev, rules: prev.rules.filter((r) => r.id !== ruleId) }));
+    setManualForm({ ...manualForm, title: "", amount: "", note: "", date: createDate(selectedMonth, 15) });
   }
 
   function ActionButtons({ tx }) {
     return (
-      <div style={styles.row}>
+      <div style={styles.actionWrap}>
         <button style={{ ...styles.button, ...styles.buttonDark }} onClick={() => confirmTransaction(tx)}>OK</button>
         <button
           style={styles.button}
@@ -577,7 +764,7 @@ export default function App() {
         <div style={styles.topBar}>
           <div>
             <h1 style={styles.title}>Cashflow- und Budget-App</h1>
-            <div style={styles.subtitle}>Private Monatsplanung mit Fälligkeiten, Bestätigungen und CSV-Export.</div>
+            <div style={styles.subtitle}>Mit Bearbeiten von Regeln, Diagrammen und dynamischer Planabweichung.</div>
           </div>
           <div style={styles.row}>
             <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={styles.input}>
@@ -598,11 +785,7 @@ export default function App() {
             ["regeln", "Regeln"],
             ["buchung", "Manuelle Buchung"],
           ].map(([key, label]) => (
-            <button
-              key={key}
-              style={tab === key ? { ...styles.tab, ...styles.tabActive } : styles.tab}
-              onClick={() => setTab(key)}
-            >
+            <button key={key} style={tab === key ? { ...styles.tab, ...styles.tabActive } : styles.tab} onClick={() => setTab(key)}>
               {label}
             </button>
           ))}
@@ -613,14 +796,29 @@ export default function App() {
             <div style={styles.grid4}>
               <Metric label="Einnahmen im Monat" value={formatCurrency(monthView?.incomeSum || 0)} hint={prettyMonth(selectedMonth)} />
               <Metric label="Ausgaben im Monat" value={formatCurrency(monthView?.expenseSum || 0)} hint={prettyMonth(selectedMonth)} />
-              <Metric label="Monatssaldo" value={formatCurrency(monthView?.net || 0)} hint="Plan/Ist je nach Bestätigung" />
+              <Metric label="Monatssaldo" value={formatCurrency(monthView?.net || 0)} hint="passt sich mit Ist-Werten an" />
               <Metric label="Laufender Stand" value={formatCurrency(monthView?.runningCash || 0)} hint="kumuliert ab Start" />
             </div>
 
-            <div style={styles.grid2}>
+            <div style={styles.grid3}>
+              <Card title="Planabweichung" subtitle="Reagiert auf bestätigte, übersprungene oder veränderte Beträge">
+                <div style={{ ...styles.infoBox, marginBottom: 12 }}>
+                  <div style={styles.smallText}>Abweichung im ausgewählten Monat</div>
+                  <div style={{ fontSize: 30, fontWeight: 700, color: varianceData.totalVariance >= 0 ? "#166534" : "#b91c1c" }}>
+                    {formatCurrency(varianceData.totalVariance)}
+                  </div>
+                </div>
+                <div style={styles.smallText}>{recommendationText()}</div>
+                {varianceData.overdueIncomes.length > 0 ? (
+                  <div style={{ marginTop: 12, ...styles.smallText }}>
+                    Überfällige Einnahmen werden noch als geplant gezählt, bis du sie mit „Skip“ oder Betrag 0 bestätigst.
+                  </div>
+                ) : null}
+              </Card>
+
               <Card title="Heute zu tun" subtitle="Offene oder bald fällige Buchungen">
                 {dueThisWeek.length === 0 ? <div style={styles.smallText}>Keine offenen Buchungen in den nächsten 7 Tagen.</div> : null}
-                {dueThisWeek.slice(0, 8).map((tx) => {
+                {dueThisWeek.slice(0, 4).map((tx) => {
                   const status = statusForTransaction(tx, app.confirmed, todayStr);
                   return (
                     <div key={tx.id} style={styles.itemBox}>
@@ -631,7 +829,7 @@ export default function App() {
                         </div>
                         <span style={badgeStyle(status)}>{status}</span>
                       </div>
-                      <div style={{ marginTop: 10 }}><ActionButtons tx={tx} /></div>
+                      <ActionButtons tx={tx} />
                     </div>
                   );
                 })}
@@ -656,7 +854,12 @@ export default function App() {
               </Card>
             </div>
 
-            <Card title="Monatsvorschau" subtitle="Von April 2026 bis März 2027">
+            <div style={styles.grid2}>
+              <BarChart title="Ausgaben nach Kategorie" subtitle={prettyMonth(selectedMonth)} items={expenseByCategory} positiveColor="#1d4ed8" negativeColor="#1d4ed8" />
+              <BarChart title="Monatssalden im Verlauf" subtitle="Positiv = Überschuss, negativ = Defizit" items={monthlyNetBars} positiveColor="#16a34a" negativeColor="#dc2626" />
+            </div>
+
+            <Card title="Monatsvorschau" subtitle="Der laufende Stand ändert sich automatisch, sobald du Ist-Werte bestätigst">
               <div style={styles.tableWrap}>
                 <table style={styles.table}>
                   <thead>
@@ -727,7 +930,7 @@ export default function App() {
         )}
 
         {tab === "aufgaben" && (
-          <Card title="Heute & Fälligkeiten" subtitle="Deine operative Liste zum Abarbeiten">
+          <Card title="Heute & Fälligkeiten" subtitle="Wenn eine Einnahme ausfällt: auf Skip oder Betrag 0 setzen, dann rechnet die Prognose neu">
             {openTxs.length === 0 ? <div style={styles.smallText}>Alles im ausgewählten Monat ist bestätigt oder es gibt keine offenen Einträge.</div> : null}
             <div style={styles.grid2}>
               {openTxs.map((tx) => {
@@ -743,7 +946,7 @@ export default function App() {
                     </div>
                     <div style={{ marginTop: 8, ...styles.smallText }}>{tx.category} · {tx.account}</div>
                     <div style={{ marginTop: 6, fontSize: 24, fontWeight: 700 }}>{formatCurrency(tx.plannedAmount)}</div>
-                    <div style={{ marginTop: 10 }}><ActionButtons tx={tx} /></div>
+                    <ActionButtons tx={tx} />
                   </div>
                 );
               })}
@@ -753,49 +956,72 @@ export default function App() {
 
         {tab === "regeln" && (
           <div style={styles.grid2}>
-            <Card title="Wiederkehrende Regeln" subtitle="Geplante Einnahmen und Ausgaben">
+            <Card title="Wiederkehrende Regeln" subtitle="Jetzt mit Bearbeiten, Umbenennen und Fälligkeiten ändern">
               {app.rules.map((rule) => (
                 <div key={rule.id} style={styles.itemBox}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                     <div>
                       <div style={{ fontWeight: 700 }}>{rule.title}</div>
-                      <div style={styles.smallText}>{rule.type === "income" ? "Einnahme" : "Ausgabe"} · {formatCurrency(rule.amount)} · {rule.frequency}</div>
+                      <div style={styles.smallText}>{rule.type === "income" ? "Einnahme" : "Ausgabe"} · {formatCurrency(rule.amount)} · {describeFrequency(rule)}</div>
                       <div style={styles.smallText}>{rule.category} · {rule.startMonth} bis {rule.endMonth}</div>
                     </div>
-                    <button style={styles.button} onClick={() => deleteRule(rule.id)}>Löschen</button>
+                    <div style={styles.row}>
+                      <button style={{ ...styles.button, ...styles.buttonSoft }} onClick={() => startEditRule(rule)}>Bearbeiten</button>
+                      <button style={styles.button} onClick={() => deleteRule(rule.id)}>Löschen</button>
+                    </div>
                   </div>
                 </div>
               ))}
             </Card>
 
-            <Card title="Neue Regel" subtitle="Fixe oder wiederkehrende Zahlungen hinzufügen">
-              <form onSubmit={addRecurringRule}>
+            <Card title={ruleForm.id ? "Regel bearbeiten" : "Neue Regel"} subtitle={ruleForm.id ? "Bestehende Regel ändern und speichern" : "Fixe oder wiederkehrende Zahlungen hinzufügen"}>
+              <form onSubmit={saveRule}>
                 <div style={{ display: "grid", gap: 10 }}>
-                  <input style={styles.input} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Bezeichnung" required />
+                  <input style={styles.input} value={ruleForm.title} onChange={(e) => setRuleForm({ ...ruleForm, title: e.target.value })} placeholder="Bezeichnung" required />
                   <div style={styles.grid2}>
-                    <select style={styles.input} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                    <select style={styles.input} value={ruleForm.type} onChange={(e) => setRuleForm({ ...ruleForm, type: e.target.value })}>
                       <option value="income">Einnahme</option>
                       <option value="expense">Ausgabe</option>
                     </select>
-                    <input style={styles.input} type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="Betrag" required />
+                    <input style={styles.input} type="number" step="0.01" value={ruleForm.amount} onChange={(e) => setRuleForm({ ...ruleForm, amount: e.target.value })} placeholder="Betrag" required />
                   </div>
                   <div style={styles.grid2}>
-                    <select style={styles.input} value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}>
+                    <select style={styles.input} value={ruleForm.frequency} onChange={(e) => setRuleForm({ ...ruleForm, frequency: e.target.value })}>
                       <option value="monthly">Monatlich</option>
+                      <option value="weekly">Wöchentlich</option>
                       <option value="everyOtherMonth">Alle 2 Monate</option>
+                      <option value="customMonths">Bestimmte Monate</option>
                     </select>
-                    <input style={styles.input} type="number" min="1" max="31" value={form.day} onChange={(e) => setForm({ ...form, day: e.target.value })} placeholder="Tag im Monat" />
+                    {ruleForm.frequency === "weekly" ? (
+                      <select style={styles.input} value={ruleForm.weekday} onChange={(e) => setRuleForm({ ...ruleForm, weekday: e.target.value })}>
+                        <option value="1">Montag</option>
+                        <option value="2">Dienstag</option>
+                        <option value="3">Mittwoch</option>
+                        <option value="4">Donnerstag</option>
+                        <option value="5">Freitag</option>
+                        <option value="6">Samstag</option>
+                        <option value="0">Sonntag</option>
+                      </select>
+                    ) : (
+                      <input style={styles.input} type="number" min="1" max="31" value={ruleForm.day} onChange={(e) => setRuleForm({ ...ruleForm, day: e.target.value })} placeholder="Tag im Monat" />
+                    )}
+                  </div>
+                  {ruleForm.frequency === "customMonths" ? (
+                    <input style={styles.input} value={ruleForm.customMonthsText} onChange={(e) => setRuleForm({ ...ruleForm, customMonthsText: e.target.value })} placeholder="Monate, z. B. 2026-06, 2026-12" />
+                  ) : null}
+                  <div style={styles.grid2}>
+                    <input style={styles.input} value={ruleForm.category} onChange={(e) => setRuleForm({ ...ruleForm, category: e.target.value })} placeholder="Kategorie" />
+                    <input style={styles.input} value={ruleForm.account} onChange={(e) => setRuleForm({ ...ruleForm, account: e.target.value })} placeholder="Konto" />
                   </div>
                   <div style={styles.grid2}>
-                    <input style={styles.input} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Kategorie" />
-                    <input style={styles.input} value={form.account} onChange={(e) => setForm({ ...form, account: e.target.value })} placeholder="Konto" />
+                    <input style={styles.input} type="month" value={ruleForm.startMonth} onChange={(e) => setRuleForm({ ...ruleForm, startMonth: e.target.value })} />
+                    <input style={styles.input} type="month" value={ruleForm.endMonth} onChange={(e) => setRuleForm({ ...ruleForm, endMonth: e.target.value })} />
                   </div>
-                  <div style={styles.grid2}>
-                    <input style={styles.input} type="month" value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} />
-                    <input style={styles.input} type="month" value={form.endMonth} onChange={(e) => setForm({ ...form, endMonth: e.target.value })} />
+                  <textarea style={styles.input} rows={3} value={ruleForm.note} onChange={(e) => setRuleForm({ ...ruleForm, note: e.target.value })} placeholder="Notiz" />
+                  <div style={styles.row}>
+                    <button style={{ ...styles.button, ...styles.buttonDark }} type="submit">{ruleForm.id ? "Änderungen speichern" : "Regel speichern"}</button>
+                    {ruleForm.id ? <button type="button" style={styles.button} onClick={cancelRuleEdit}>Abbrechen</button> : null}
                   </div>
-                  <textarea style={styles.input} rows={3} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Notiz" />
-                  <button style={{ ...styles.button, ...styles.buttonDark }} type="submit">Regel speichern</button>
                 </div>
               </form>
             </Card>
@@ -804,34 +1030,35 @@ export default function App() {
 
         {tab === "buchung" && (
           <div style={styles.grid2}>
-            <Card title="Manuelle Buchung" subtitle="Für spontane Einnahmen oder Ausgaben">
+            <Card title="Manuelle Buchung" subtitle="Für spontane Einnahmen oder Ausgaben. Diese beeinflussen die Prognose sofort.">
               <form onSubmit={addManualTransaction}>
                 <div style={{ display: "grid", gap: 10 }}>
-                  <input style={styles.input} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Bezeichnung" required />
+                  <input style={styles.input} value={manualForm.title} onChange={(e) => setManualForm({ ...manualForm, title: e.target.value })} placeholder="Bezeichnung" required />
                   <div style={styles.grid2}>
-                    <select style={styles.input} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                    <select style={styles.input} value={manualForm.type} onChange={(e) => setManualForm({ ...manualForm, type: e.target.value })}>
                       <option value="expense">Ausgabe</option>
                       <option value="income">Einnahme</option>
                     </select>
-                    <input style={styles.input} type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="Betrag" required />
+                    <input style={styles.input} type="number" step="0.01" value={manualForm.amount} onChange={(e) => setManualForm({ ...manualForm, amount: e.target.value })} placeholder="Betrag" required />
                   </div>
                   <div style={styles.grid2}>
-                    <input style={styles.input} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Kategorie" />
-                    <input style={styles.input} value={form.account} onChange={(e) => setForm({ ...form, account: e.target.value })} placeholder="Konto" />
+                    <input style={styles.input} type="date" value={manualForm.date} onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })} />
+                    <input style={styles.input} value={manualForm.category} onChange={(e) => setManualForm({ ...manualForm, category: e.target.value })} placeholder="Kategorie" />
                   </div>
-                  <textarea style={styles.input} rows={3} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Notiz" />
+                  <input style={styles.input} value={manualForm.account} onChange={(e) => setManualForm({ ...manualForm, account: e.target.value })} placeholder="Konto" />
+                  <textarea style={styles.input} rows={3} value={manualForm.note} onChange={(e) => setManualForm({ ...manualForm, note: e.target.value })} placeholder="Notiz" />
                   <button style={{ ...styles.button, ...styles.buttonDark }} type="submit">Buchung anlegen</button>
                 </div>
               </form>
             </Card>
 
-            <Card title="So benutzt du die App" subtitle="Die erste, einfache Arbeitsweise">
+            <Card title="Wie die dynamische Anpassung funktioniert" subtitle="Einfach und alltagstauglich">
               <div style={{ lineHeight: 1.7 }}>
-                <div>1. Alles startet mit Regeln für regelmäßige Zahlungen.</div>
-                <div>2. Im Tab „Heute & Fälligkeiten“ bestätigst du echte Ein- und Ausgänge.</div>
-                <div>3. Mit „Betrag“ kannst du den echten Wert eintragen, wenn er abweicht.</div>
-                <div>4. Mit „CSV exportieren“ bekommst du den Monat für Excel.</div>
-                <div>5. Alles wird lokal im Browser gespeichert, ohne Cloud oder Server.</div>
+                <div>1. Geplante Werte kommen aus deinen Regeln.</div>
+                <div>2. Wenn etwas anders kommt, bestätigst du es mit „Betrag“ oder „Skip“.</div>
+                <div>3. Dadurch ändern sich Monatssaldo, Diagramme und laufender Stand automatisch.</div>
+                <div>4. Fällt Dolbilov aus, markierst du den Eingang als Skip oder 0.</div>
+                <div>5. Kommt eine hohe Extra-Einnahme, trägst du sie hier als manuelle Einnahme ein.</div>
               </div>
             </Card>
           </div>
