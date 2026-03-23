@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 
-const UI_STORAGE_KEY = "cashflow-ui-v3";
+const UI_STORAGE_KEY = "cashflow-ui-v4";
 
 const texts = {
   de: {
@@ -21,7 +21,6 @@ const texts = {
     debt: "Schulden",
     rules: "Regeln",
     settings: "Einstellungen",
-    dashboard: "Dashboard",
     month: "Monat",
     role: "Rolle",
     owner: "Inhaber",
@@ -107,6 +106,41 @@ const texts = {
     noData: "Keine Daten vorhanden.",
     user: "Benutzer",
     createdAt: "Erfasst am",
+    planned: "Geplant",
+    actual: "Tatsächlich",
+    planVsActual: "Plan vs. Tatsächlich",
+    plannedIncome: "Geplante Einnahmen",
+    plannedExpense: "Geplante Ausgaben",
+    plannedNet: "Geplanter Saldo",
+    actualIncome: "Tatsächliche Einnahmen",
+    actualExpense: "Tatsächliche Ausgaben",
+    actualNet: "Tatsächlicher Saldo",
+    categoriesOverview: "Kategorienübersicht",
+    expensesList: "Ausgaben",
+    incomeList: "Einnahmen",
+    allBookings: "Alle Buchungen",
+    actionEditor: "Buchung anpassen",
+    quickConfirm: "Schnell bestätigen",
+    headerSettings: "Header anpassen",
+    headerTitle: "Header-Titel",
+    headerSubtitle: "Header-Untertitel",
+    headerImage: "Header-Bild",
+    currentTime: "Aktuelle Uhrzeit",
+    showClock: "Uhrzeit anzeigen",
+    exportCsv: "CSV Export",
+    exportMonthCsv: "Monat als CSV exportieren",
+    exportAllCsv: "Alles als CSV exportieren",
+    notifications: "Notifications",
+    notificationsHint: "Browser-Berechtigung vorbereiten. Für echte Push-Notifications wäre später zusätzlich ein Service Worker sinnvoll.",
+    enableNotifications: "Berechtigung anfragen",
+    notificationStatus: "Status",
+    allowed: "erlaubt",
+    denied: "abgelehnt",
+    defaultPermission: "noch nicht entschieden",
+    planItems: "Plan-Buchungen",
+    manualItems: "Manuelle Buchungen",
+    plusGreenHint: "Plus = positiv",
+    minusRedHint: "Minus = Belastung",
   },
   ru: {
     appTitle: "Cashflow-App",
@@ -125,7 +159,6 @@ const texts = {
     debt: "Долги",
     rules: "Правила",
     settings: "Настройки",
-    dashboard: "Панель",
     month: "Месяц",
     role: "Роль",
     owner: "Владелец",
@@ -211,6 +244,41 @@ const texts = {
     noData: "Нет данных.",
     user: "Пользователь",
     createdAt: "Создано",
+    planned: "План",
+    actual: "Факт",
+    planVsActual: "План vs. Факт",
+    plannedIncome: "Плановый доход",
+    plannedExpense: "Плановый расход",
+    plannedNet: "Плановый баланс",
+    actualIncome: "Фактический доход",
+    actualExpense: "Фактический расход",
+    actualNet: "Фактический баланс",
+    categoriesOverview: "Категории",
+    expensesList: "Расходы",
+    incomeList: "Доходы",
+    allBookings: "Все проводки",
+    actionEditor: "Изменить проводку",
+    quickConfirm: "Быстро подтвердить",
+    headerSettings: "Настроить header",
+    headerTitle: "Заголовок",
+    headerSubtitle: "Подзаголовок",
+    headerImage: "Картинка header",
+    currentTime: "Текущее время",
+    showClock: "Показывать время",
+    exportCsv: "Экспорт CSV",
+    exportMonthCsv: "Экспорт месяца в CSV",
+    exportAllCsv: "Экспорт всего в CSV",
+    notifications: "Уведомления",
+    notificationsHint: "Подготовка разрешения браузера. Для настоящих push позже понадобится service worker.",
+    enableNotifications: "Запросить разрешение",
+    notificationStatus: "Статус",
+    allowed: "разрешено",
+    denied: "отклонено",
+    defaultPermission: "ещё не выбрано",
+    planItems: "Плановые проводки",
+    manualItems: "Ручные проводки",
+    plusGreenHint: "Плюс = положительно",
+    minusRedHint: "Минус = нагрузка",
   },
 };
 
@@ -252,6 +320,17 @@ const monthNames = {
   ru: ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"],
 };
 
+const DEFAULT_UI = {
+  lang: "de",
+  theme: "light",
+  profileMe: "",
+  profileWife: "",
+  headerTitle: "",
+  headerSubtitle: "",
+  headerImage: "",
+  showClock: true,
+};
+
 function tr(lang, key) {
   return texts[lang]?.[key] || texts.de[key] || key;
 }
@@ -263,12 +342,28 @@ function roleLabel(lang, role) {
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("de-AT", { style: "currency", currency: "EUR" }).format(Number(value || 0));
+  return new Intl.NumberFormat("de-AT", {
+    style: "currency",
+    currency: "EUR",
+  }).format(Number(value || 0));
+}
+
+function formatSignedCurrency(value, showPlus = false) {
+  return new Intl.NumberFormat("de-AT", {
+    style: "currency",
+    currency: "EUR",
+    signDisplay: showPlus ? "always" : "auto",
+  }).format(Number(value || 0));
+}
+
+function signedAmountForType(value, type) {
+  const n = Math.abs(Number(value || 0));
+  return type === "expense" ? -n : n;
 }
 
 function formatMonth(month, lang) {
   const [y, m] = month.split("-").map(Number);
-  return `${monthNames[lang][m - 1]} ${y}`;
+  return `${monthNames[lang]?.[m - 1] || monthNames.de[m - 1]} ${y}`;
 }
 
 function formatDate(value, lang) {
@@ -279,6 +374,14 @@ function formatDate(value, lang) {
     month: "2-digit",
     year: "numeric",
   }).format(d);
+}
+
+function formatClock(value, lang) {
+  return new Intl.DateTimeFormat(lang === "ru" ? "ru-RU" : "de-AT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(value);
 }
 
 function monthIndex(month) {
@@ -308,6 +411,10 @@ function createDate(month, day) {
   return `${y}-${String(m).padStart(2, "0")}-${String(Math.min(Number(day || 1), maxDay)).padStart(2, "0")}`;
 }
 
+function dateKeyFromDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function datesForWeeklyInMonth(month, weekday) {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(y, m - 1, 1);
@@ -329,7 +436,10 @@ function normalizeMonths(value) {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return value.split(",").map((x) => x.trim()).filter(Boolean);
+      return value
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean);
     }
   }
   return [];
@@ -350,6 +460,7 @@ function buildPlannedOccurrences(rules, months) {
   for (const rule of rules) {
     for (const month of months) {
       if (!ruleActiveInMonth(rule, month)) continue;
+
       const base = {
         id: `${rule.id}_${month}`,
         key: null,
@@ -413,7 +524,6 @@ function inferOccurrenceStatus(item, todayStr) {
 
 function mergePlannedWithActions(planned, actions) {
   const actionMap = new Map(actions.map((a) => [`${a.rule_id}_${a.planned_date}`, a]));
-
   return planned.map((occ) => {
     const action = actionMap.get(occ.key);
     if (!action) {
@@ -442,36 +552,64 @@ function summarizeMonth(selectedMonth, plannedWithActions, manualTransactions) {
   const monthPlanned = plannedWithActions.filter((x) => x.month === selectedMonth);
   const monthManual = manualTransactions.filter((x) => x.booking_date?.slice(0, 7) === selectedMonth);
 
-  let income = 0;
-  let expense = 0;
+  let plannedIncome = 0;
+  let plannedExpense = 0;
+  let actualIncome = 0;
+  let actualExpense = 0;
+
   const categoryMap = new Map();
 
   for (const item of monthPlanned) {
-    if (item.status === "skipped") continue;
-    const amount = Number(item.status === "confirmed" ? item.actual_amount ?? item.planned_amount : item.planned_amount);
+    const plannedAmount = Math.abs(Number(item.planned_amount || 0));
+    const actualAmount = Math.abs(Number(item.actual_amount ?? item.planned_amount ?? 0));
+
     if (item.type === "income") {
-      income += amount;
+      if (item.status !== "skipped") plannedIncome += plannedAmount;
+      if (item.status === "confirmed") actualIncome += actualAmount;
     } else {
-      expense += amount;
-      categoryMap.set(item.category, (categoryMap.get(item.category) || 0) + amount);
+      if (item.status !== "skipped") plannedExpense += plannedAmount;
+      if (item.status === "confirmed") actualExpense += actualAmount;
     }
+
+    const prev = categoryMap.get(item.category) || { label: item.category, income: 0, expense: 0 };
+    if (item.type === "income") {
+      if (item.status !== "skipped") prev.income += plannedAmount;
+    } else {
+      if (item.status !== "skipped") prev.expense += plannedAmount;
+    }
+    categoryMap.set(item.category, prev);
   }
 
   for (const tx of monthManual) {
-    const amount = Number(tx.amount || 0);
+    const amount = Math.abs(Number(tx.amount || 0));
     if (tx.type === "income") {
-      income += amount;
+      actualIncome += amount;
     } else {
-      expense += amount;
-      categoryMap.set(tx.category || "Sonstiges", (categoryMap.get(tx.category || "Sonstiges") || 0) + amount);
+      actualExpense += amount;
     }
+
+    const label = tx.category || "Sonstiges";
+    const prev = categoryMap.get(label) || { label, income: 0, expense: 0 };
+    if (tx.type === "income") {
+      prev.income += amount;
+    } else {
+      prev.expense += amount;
+    }
+    categoryMap.set(label, prev);
   }
 
+  const categories = [...categoryMap.values()]
+    .map((x) => ({ ...x, total: x.income + x.expense, net: x.income - x.expense }))
+    .sort((a, b) => b.total - a.total);
+
   return {
-    income,
-    expense,
-    net: income - expense,
-    categories: [...categoryMap.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value),
+    plannedIncome,
+    plannedExpense,
+    plannedNet: plannedIncome - plannedExpense,
+    actualIncome,
+    actualExpense,
+    actualNet: actualIncome - actualExpense,
+    categories,
     plannedItems: monthPlanned,
     manualItems: monthManual,
   };
@@ -499,8 +637,17 @@ function buildDebtPlan(months, summariesByMonth, debtAccounts) {
   );
 
   return months.map((month) => {
-    const summary = summariesByMonth[month] || { income: 0, expense: 0, net: 0, categories: [] };
-    let available = round2(summary.net);
+    const summary = summariesByMonth[month] || {
+      plannedIncome: 0,
+      plannedExpense: 0,
+      plannedNet: 0,
+      actualIncome: 0,
+      actualExpense: 0,
+      actualNet: 0,
+      categories: [],
+    };
+
+    let available = round2(summary.actualNet || 0);
     const perAccount = [];
 
     for (const acc of activeAccounts) {
@@ -508,7 +655,9 @@ function buildDebtPlan(months, summariesByMonth, debtAccounts) {
       const principalStart = round2(state.principal);
       const accruedStart = round2(state.accrued);
       const monthlyInterest = round2(principalStart * Number(acc.annual_interest_rate || 0) / 12);
-      const bookedInterest = isQuarterlyBookingMonth(month, acc.interest_booking_cycle) ? round2(accruedStart + monthlyInterest) : 0;
+      const bookedInterest = isQuarterlyBookingMonth(month, acc.interest_booking_cycle)
+        ? round2(accruedStart + monthlyInterest)
+        : 0;
       const payable = round2(principalStart + bookedInterest);
       const payment = round2(Math.max(0, Math.min(available, payable)));
       const principalEnd = round2(Math.max(0, principalStart + bookedInterest - payment));
@@ -537,7 +686,7 @@ function buildDebtPlan(months, summariesByMonth, debtAccounts) {
     return {
       month,
       summary,
-      availableBeforeDebt: round2(summary.net),
+      availableBeforeDebt: round2(summary.actualNet || 0),
       totalDebt: round2(perAccount.reduce((sum, x) => sum + x.totalEnd, 0)),
       totalPayment: round2(perAccount.reduce((sum, x) => sum + x.payment, 0)),
       reserve,
@@ -596,7 +745,13 @@ function formToRulePayload(form, householdId) {
     category: form.category.trim() || "Sonstiges",
     account: form.account.trim() || "Hauptkonto",
     note: form.note || "",
-    months: form.frequency === "customMonths" ? form.customMonthsText.split(",").map((x) => x.trim()).filter(Boolean) : [],
+    months:
+      form.frequency === "customMonths"
+        ? form.customMonthsText
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [],
   };
 }
 
@@ -622,6 +777,15 @@ function useWindowWidth() {
   return width;
 }
 
+function useClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return now;
+}
+
 function toBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -631,14 +795,287 @@ function toBase64(file) {
   });
 }
 
+function escapeCsvValue(value) {
+  const stringValue = String(value ?? "");
+  if (stringValue.includes('"') || stringValue.includes(";") || stringValue.includes("\n")) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function downloadCsv(filename, rows) {
+  const content = rows.map((row) => row.map(escapeCsvValue).join(";")).join("\n");
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function Section({ styles, title, subtitle, children, right }) {
+  return (
+    <div style={styles.card}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
+        <div>
+          <h2 style={styles.cardTitle}>{title}</h2>
+          {subtitle ? <div style={styles.cardSubtitle}>{subtitle}</div> : null}
+        </div>
+        {right || null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MetricCard({ styles, label, value, hint, color }) {
+  return (
+    <div style={styles.metric}>
+      <div style={styles.metricLabel}>{label}</div>
+      <div style={{ ...styles.metricValue, color: color || styles.metricValue.color }}>{value}</div>
+      {hint ? <div style={styles.metricHint}>{hint}</div> : null}
+    </div>
+  );
+}
+
+function ComparisonBar({ styles, palette, label, planned, actual, mode = "normal" }) {
+  const max = Math.max(planned, actual, 1);
+  const plannedWidth = `${(Math.abs(planned) / max) * 100}%`;
+  const actualWidth = `${(Math.abs(actual) / max) * 100}%`;
+  const plannedColor = mode === "expense" ? palette.danger : palette.accent;
+  const actualColor = mode === "expense" ? palette.warning : palette.success;
+
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+        <strong>{label}</strong>
+        <span>{formatCurrency(planned)} / {formatCurrency(actual)}</span>
+      </div>
+      <div style={{ display: "grid", gap: 8 }}>
+        <div>
+          <div style={{ fontSize: 12, color: palette.sub, marginBottom: 4 }}>Geplant</div>
+          <div style={styles.chartTrack}>
+            <div style={{ width: plannedWidth, height: 12, background: plannedColor }} />
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 12, color: palette.sub, marginBottom: 4 }}>Tatsächlich</div>
+          <div style={styles.chartTrack}>
+            <div style={{ width: actualWidth, height: 12, background: actualColor }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusChip({ styles, palette, label, statusKey }) {
+  const colors = {
+    confirmed: { bg: `${palette.success}22`, color: palette.success },
+    skipped: { bg: palette.border, color: palette.sub },
+    overdue: { bg: `${palette.danger}22`, color: palette.danger },
+    today: { bg: `${palette.warning}22`, color: palette.warning },
+    open: { bg: palette.accentSoft, color: palette.accent },
+  };
+  const c = colors[statusKey] || colors.open;
+  return <div style={{ ...styles.chip, background: c.bg, color: c.color }}>{label}</div>;
+}
+
+function BookingCard({
+  styles,
+  palette,
+  lang,
+  item,
+  todayStr,
+  isOwner,
+  onConfirm,
+  onEdit,
+  onSkip,
+  savingActionKey,
+}) {
+  const visualStatus = inferOccurrenceStatus(item, todayStr);
+  const signedPlanned = signedAmountForType(item.planned_amount, item.type);
+  const signedActual =
+    item.status === "confirmed"
+      ? signedAmountForType(item.actual_amount, item.type)
+      : item.status === "skipped"
+        ? 0
+        : null;
+
+  const amountColor = item.type === "expense" ? palette.danger : palette.success;
+
+  return (
+    <div style={styles.bookingCard}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "start" }}>
+        <div>
+          <div style={{ fontWeight: 800 }}>{item.title}</div>
+          <div style={styles.subtle}>
+            {formatDate(item.planned_date, lang)} · {item.type === "income" ? tr(lang, "income") : tr(lang, "expense")}
+          </div>
+          <div style={styles.subtle}>{item.category} · {item.account}</div>
+        </div>
+        <StatusChip
+          styles={styles}
+          palette={palette}
+          statusKey={visualStatus}
+          label={mapStatus(lang, visualStatus)}
+        />
+      </div>
+
+      <div style={styles.grid2}>
+        <div>
+          <div style={styles.subtle}>{tr(lang, "planned")}</div>
+          <div style={{ fontWeight: 800, color: amountColor }}>
+            {formatSignedCurrency(signedPlanned, true)}
+          </div>
+        </div>
+        <div>
+          <div style={styles.subtle}>{tr(lang, "actual")}</div>
+          <div style={{ fontWeight: 800, color: signedActual == null ? palette.text : amountColor }}>
+            {signedActual == null ? "-" : formatSignedCurrency(signedActual, true)}
+          </div>
+        </div>
+      </div>
+
+      {item.actual_date || item.actual_note ? (
+        <div style={styles.subtle}>
+          {item.actual_date ? `${tr(lang, "actualDate")}: ${formatDate(item.actual_date, lang)}` : ""}
+          {item.actual_date && item.actual_note ? " · " : ""}
+          {item.actual_note || ""}
+        </div>
+      ) : null}
+
+      {isOwner && item.source !== "manual" && item.status !== "confirmed" && item.status !== "skipped" ? (
+        <div style={styles.row}>
+          <button
+            style={{ ...styles.button, ...styles.buttonPrimary }}
+            onClick={() => onConfirm(item)}
+            disabled={Boolean(savingActionKey)}
+            type="button"
+          >
+            {savingActionKey === `${item.rule_id}_${item.planned_date}_confirm`
+              ? tr(lang, "saving")
+              : tr(lang, "quickConfirm")}
+          </button>
+          <button style={styles.button} onClick={() => onEdit(item)} type="button">
+            {tr(lang, "editAmount")}
+          </button>
+          <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => onSkip(item)} type="button">
+            {tr(lang, "skip")}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ActionModal({
+  styles,
+  palette,
+  lang,
+  isOpen,
+  item,
+  form,
+  setForm,
+  onClose,
+  onSave,
+  saving,
+}) {
+  if (!isOpen || !item) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.42)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 14,
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 460,
+          background: palette.panel,
+          border: `1px solid ${palette.border}`,
+          borderRadius: 24,
+          padding: 16,
+          boxShadow: palette.shadow,
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>{tr(lang, "actionEditor")}</div>
+          <div style={{ color: palette.sub, marginTop: 4 }}>{item.title}</div>
+        </div>
+
+        <div style={styles.grid2}>
+          <div>
+            <div style={styles.subtle}>{tr(lang, "amount")}</div>
+            <div style={{ fontWeight: 800 }}>
+              {formatSignedCurrency(signedAmountForType(item.planned_amount, item.type), true)}
+            </div>
+          </div>
+          <div>
+            <div style={styles.subtle}>{tr(lang, "actualDate")}</div>
+            <div style={{ fontWeight: 800 }}>{formatDate(form.actual_date, lang)}</div>
+          </div>
+        </div>
+
+        <input
+          style={styles.input}
+          type="number"
+          step="0.01"
+          value={form.actual_amount}
+          onChange={(e) => setForm((prev) => ({ ...prev, actual_amount: e.target.value }))}
+          placeholder={tr(lang, "actualAmount")}
+        />
+        <input
+          style={styles.input}
+          type="date"
+          value={form.actual_date}
+          onChange={(e) => setForm((prev) => ({ ...prev, actual_date: e.target.value }))}
+        />
+        <textarea
+          style={styles.textarea}
+          value={form.actual_note}
+          onChange={(e) => setForm((prev) => ({ ...prev, actual_note: e.target.value }))}
+          placeholder={tr(lang, "note")}
+        />
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button type="button" style={styles.button} onClick={onClose}>
+            {tr(lang, "cancel")}
+          </button>
+          <button type="button" style={{ ...styles.button, ...styles.buttonPrimary }} onClick={onSave} disabled={saving}>
+            {saving ? tr(lang, "saving") : tr(lang, "save")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const width = useWindowWidth();
   const isSmall = width < 430;
+  const now = useClock();
 
   const [ui, setUi] = useState(() => {
-    const raw = localStorage.getItem(UI_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { lang: "de", theme: "light", profileMe: "", profileWife: "" };
+    try {
+      const raw = localStorage.getItem(UI_STORAGE_KEY);
+      return raw ? { ...DEFAULT_UI, ...JSON.parse(raw) } : DEFAULT_UI;
+    } catch {
+      return DEFAULT_UI;
+    }
   });
+
   const palette = palettes[ui.theme];
   const lang = ui.lang;
 
@@ -664,170 +1101,410 @@ export default function App() {
   const [selectedRuleId, setSelectedRuleId] = useState("");
   const [ruleForm, setRuleForm] = useState(() => emptyRuleForm("2026-04"));
   const [manualForm, setManualForm] = useState(() => emptyManualForm("2026-04"));
+  const [actionEditorItem, setActionEditorItem] = useState(null);
+  const [actionEditorForm, setActionEditorForm] = useState({
+    actual_amount: "",
+    actual_date: "",
+    actual_note: "",
+  });
+  const [notificationPermission, setNotificationPermission] = useState(
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
+  );
 
   const isOwner = profile?.role === "owner";
+  const todayStr = dateKeyFromDate(now);
 
-  const styles = useMemo(() => ({
-    page: { minHeight: "100vh", background: palette.bg, color: palette.text, fontFamily: "Inter, Arial, Helvetica, sans-serif", paddingBottom: 92 },
-    container: { maxWidth: 540, margin: "0 auto", padding: isSmall ? 12 : 16 },
-    hero: { display: "grid", gap: 12, marginBottom: 14 },
-    heroCard: { background: palette.gradient, color: "#fff", borderRadius: 24, padding: isSmall ? 16 : 20, boxShadow: palette.shadow },
-    controlsCard: { background: palette.panel, border: `1px solid ${palette.border}`, borderRadius: 22, padding: 14, boxShadow: palette.shadow },
-    title: { margin: 0, fontSize: isSmall ? 28 : 34, lineHeight: 1.05, fontWeight: 800 },
-    subtitle: { marginTop: 8, color: "rgba(255,255,255,0.88)", fontSize: 14 },
-    card: { background: palette.panel, border: `1px solid ${palette.border}`, borderRadius: 22, padding: 14, boxShadow: palette.shadow },
-    cardTitle: { margin: 0, fontSize: 20, fontWeight: 800 },
-    cardSubtitle: { marginTop: 6, marginBottom: 12, color: palette.sub, fontSize: 13 },
-    metrics: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
-    metric: { background: palette.panelSoft, border: `1px solid ${palette.border}`, borderRadius: 18, padding: 14 },
-    metricLabel: { fontSize: 12, color: palette.sub },
-    metricValue: { marginTop: 6, fontSize: 24, fontWeight: 800 },
-    metricHint: { marginTop: 6, fontSize: 12, color: palette.sub },
-    input: { width: "100%", padding: "12px 14px", borderRadius: 16, border: `1px solid ${palette.border}`, background: palette.panelSoft, color: palette.text, boxSizing: "border-box", fontSize: 15 },
-    textarea: { width: "100%", padding: "12px 14px", borderRadius: 16, border: `1px solid ${palette.border}`, background: palette.panelSoft, color: palette.text, boxSizing: "border-box", fontSize: 15, minHeight: 90, resize: "vertical" },
-    button: { padding: "12px 14px", borderRadius: 16, border: `1px solid ${palette.border}`, background: palette.panel, color: palette.text, fontWeight: 700, cursor: "pointer" },
-    buttonPrimary: { background: palette.text, color: palette.panel, border: `1px solid ${palette.text}` },
-    buttonAccent: { background: palette.accent, color: "#fff", border: `1px solid ${palette.accent}` },
-    buttonDanger: { background: palette.danger, color: "#fff", border: `1px solid ${palette.danger}` },
-    buttonSoft: { background: palette.accentSoft, color: palette.accent, border: `1px solid ${palette.border}` },
-    row: { display: "flex", gap: 8, flexWrap: "wrap" },
-    grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
-    subtle: { color: palette.sub, fontSize: 13 },
-    chip: { display: "inline-flex", alignItems: "center", padding: "6px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700 },
-    bookingCard: { background: palette.panelSoft, border: `1px solid ${palette.border}`, borderRadius: 18, padding: 14, display: "grid", gap: 10 },
-    avatar: { width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: `2px solid ${palette.border}` },
-    avatarFallback: { width: 54, height: 54, borderRadius: "50%", background: palette.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800 },
-    bottomNav: { position: "fixed", left: 0, right: 0, bottom: 0, background: palette.panel, borderTop: `1px solid ${palette.border}`, display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, padding: "10px 8px calc(10px + env(safe-area-inset-bottom))" },
-    navButton: { background: "transparent", border: "none", color: palette.sub, fontWeight: 700, fontSize: 11, padding: 8, borderRadius: 12, cursor: "pointer" },
-    navButtonActive: { background: palette.accentSoft, color: palette.accent },
-    chartTrack: { height: 12, background: palette.border, borderRadius: 999, overflow: "hidden" },
-  }), [palette, isSmall]);
+  const styles = useMemo(
+    () => ({
+      page: {
+        minHeight: "100vh",
+        background: palette.bg,
+        color: palette.text,
+        fontFamily: "Inter, Arial, Helvetica, sans-serif",
+        paddingBottom: 92,
+      },
+      container: { maxWidth: 560, margin: "0 auto", padding: isSmall ? 12 : 16 },
+      hero: { display: "grid", gap: 12, marginBottom: 14 },
+      heroCard: {
+        background: palette.gradient,
+        color: "#fff",
+        borderRadius: 24,
+        padding: isSmall ? 16 : 20,
+        boxShadow: palette.shadow,
+        position: "relative",
+        overflow: "hidden",
+      },
+      heroImage: {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        opacity: 0.22,
+      },
+      heroOverlay: {
+        position: "absolute",
+        inset: 0,
+        background: "linear-gradient(135deg, rgba(10,20,50,0.35) 0%, rgba(10,20,50,0.12) 100%)",
+      },
+      controlsCard: {
+        background: palette.panel,
+        border: `1px solid ${palette.border}`,
+        borderRadius: 22,
+        padding: 14,
+        boxShadow: palette.shadow,
+      },
+      title: { margin: 0, fontSize: isSmall ? 28 : 34, lineHeight: 1.05, fontWeight: 800 },
+      subtitle: { marginTop: 8, color: "rgba(255,255,255,0.9)", fontSize: 14, maxWidth: 360 },
+      card: {
+        background: palette.panel,
+        border: `1px solid ${palette.border}`,
+        borderRadius: 22,
+        padding: 14,
+        boxShadow: palette.shadow,
+      },
+      cardTitle: { margin: 0, fontSize: 20, fontWeight: 800 },
+      cardSubtitle: { marginTop: 6, marginBottom: 12, color: palette.sub, fontSize: 13 },
+      metrics: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+      metric: {
+        background: palette.panelSoft,
+        border: `1px solid ${palette.border}`,
+        borderRadius: 18,
+        padding: 14,
+      },
+      metricLabel: { fontSize: 12, color: palette.sub },
+      metricValue: { marginTop: 6, fontSize: 22, fontWeight: 800 },
+      metricHint: { marginTop: 6, fontSize: 12, color: palette.sub },
+      input: {
+        width: "100%",
+        padding: "12px 14px",
+        borderRadius: 16,
+        border: `1px solid ${palette.border}`,
+        background: palette.panelSoft,
+        color: palette.text,
+        boxSizing: "border-box",
+        fontSize: 15,
+      },
+      textarea: {
+        width: "100%",
+        padding: "12px 14px",
+        borderRadius: 16,
+        border: `1px solid ${palette.border}`,
+        background: palette.panelSoft,
+        color: palette.text,
+        boxSizing: "border-box",
+        fontSize: 15,
+        minHeight: 90,
+        resize: "vertical",
+      },
+      button: {
+        padding: "12px 14px",
+        borderRadius: 16,
+        border: `1px solid ${palette.border}`,
+        background: palette.panel,
+        color: palette.text,
+        fontWeight: 700,
+        cursor: "pointer",
+      },
+      buttonPrimary: {
+        background: palette.text,
+        color: palette.panel,
+        border: `1px solid ${palette.text}`,
+      },
+      buttonAccent: {
+        background: palette.accent,
+        color: "#fff",
+        border: `1px solid ${palette.accent}`,
+      },
+      buttonDanger: {
+        background: palette.danger,
+        color: "#fff",
+        border: `1px solid ${palette.danger}`,
+      },
+      buttonSoft: {
+        background: palette.accentSoft,
+        color: palette.accent,
+        border: `1px solid ${palette.border}`,
+      },
+      row: { display: "flex", gap: 8, flexWrap: "wrap" },
+      grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+      subtle: { color: palette.sub, fontSize: 13 },
+      chip: {
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "6px 10px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 700,
+      },
+      bookingCard: {
+        background: palette.panelSoft,
+        border: `1px solid ${palette.border}`,
+        borderRadius: 18,
+        padding: 14,
+        display: "grid",
+        gap: 10,
+      },
+      avatar: {
+        width: 54,
+        height: 54,
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: `2px solid rgba(255,255,255,0.35)`,
+      },
+      avatarFallback: {
+        width: 54,
+        height: 54,
+        borderRadius: "50%",
+        background: "rgba(255,255,255,0.18)",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 18,
+        fontWeight: 800,
+        border: `2px solid rgba(255,255,255,0.35)`,
+      },
+      bottomNav: {
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: palette.panel,
+        borderTop: `1px solid ${palette.border}`,
+        display: "grid",
+        gridTemplateColumns: "repeat(6, 1fr)",
+        gap: 6,
+        padding: "10px 8px calc(10px + env(safe-area-inset-bottom))",
+      },
+      navButton: {
+        background: "transparent",
+        border: "none",
+        color: palette.sub,
+        fontWeight: 700,
+        fontSize: 11,
+        padding: 8,
+        borderRadius: 12,
+        cursor: "pointer",
+      },
+      navButtonActive: {
+        background: palette.accentSoft,
+        color: palette.accent,
+      },
+      chartTrack: {
+        height: 12,
+        background: palette.border,
+        borderRadius: 999,
+        overflow: "hidden",
+      },
+    }),
+    [palette, isSmall]
+  );
 
   useEffect(() => {
+    let alive = true;
+
+    function resetAppState() {
+      setProfile(null);
+      setHouseholdId(null);
+      setHouseholdName("");
+      setRules([]);
+      setDebtAccounts([]);
+      setBookingActions([]);
+      setManualTransactions([]);
+      setSelectedRuleId("");
+      setRuleForm(emptyRuleForm("2026-04"));
+      setManualForm(emptyManualForm("2026-04"));
+      setMessage(tr(lang, "notLoggedIn"));
+    }
+
     async function init() {
+      setLoading(true);
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          setMessage(error.message);
-          setLoading(false);
-          return;
-        }
-        setSession(session);
-        if (session?.user) {
-          await bootstrapUser(session.user.id);
+        const {
+          data: { session: currentSession },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) throw error;
+        if (!alive) return;
+
+        setSession(currentSession ?? null);
+
+        if (currentSession?.user) {
+          await bootstrapUser(currentSession.user.id);
+        } else {
+          resetAppState();
         }
       } catch (err) {
-        setMessage(err.message);
+        if (alive) setMessage(err.message || "Auth-Fehler");
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     }
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      if (newSession?.user) {
-        await bootstrapUser(newSession.user.id);
-      } else {
-        setProfile(null);
-        setHouseholdId(null);
-        setRules([]);
-        setDebtAccounts([]);
-        setBookingActions([]);
-        setManualTransactions([]);
-        setMessage(tr(ui.lang, "notLoggedIn"));
-      }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!alive) return;
+
+      setSession(newSession ?? null);
+
+      window.setTimeout(async () => {
+        if (!alive) return;
+        if (newSession?.user) {
+          await bootstrapUser(newSession.user.id);
+        } else {
+          resetAppState();
+        }
+      }, 0);
     });
 
-    return () => subscription.unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      alive = false;
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function bootstrapUser(userId) {
     const loadedProfile = await loadProfile(userId);
     if (!loadedProfile) return;
+
     const household = await loadHousehold(userId);
     if (!household) return;
+
     await Promise.all([
       loadRules(household.household_id),
       loadDebtAccounts(household.household_id),
       loadBookingActions(household.household_id),
       loadManualTransactions(household.household_id),
     ]);
+
     setMessage(tr(lang, "rulesLoaded"));
   }
 
   async function loadProfile(userId) {
-    const { data, error } = await supabase.from("profiles").select("id, email, role, display_name").eq("id", userId).single();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, email, role, display_name")
+      .eq("id", userId)
+      .single();
+
     if (error) {
       setProfile(null);
       setMessage("Profilfehler: " + error.message);
       return null;
     }
+
     setProfile(data);
     return data;
   }
 
   async function loadHousehold(userId) {
-    const { data, error } = await supabase.from("household_members").select("household_id, role, households(name)").eq("user_id", userId).single();
+    const { data, error } = await supabase
+      .from("household_members")
+      .select("household_id, role, households(name)")
+      .eq("user_id", userId)
+      .single();
+
     if (error) {
       setMessage("Haushalt konnte nicht geladen werden: " + error.message);
       return null;
     }
+
     setHouseholdId(data.household_id);
     setHouseholdName(data.households?.name || "");
     return data;
   }
 
   async function loadRules(hId) {
-    const { data, error } = await supabase.from("rules").select("*").eq("household_id", hId).order("created_at", { ascending: true });
+    const { data, error } = await supabase
+      .from("rules")
+      .select("*")
+      .eq("household_id", hId)
+      .order("created_at", { ascending: true });
+
     if (error) {
       setMessage("Regeln konnten nicht geladen werden: " + error.message);
       return;
     }
+
     const safe = (data || []).map((rule) => ({ ...rule, months: normalizeMonths(rule.months) }));
     setRules(safe);
-    if (safe.length > 0 && !selectedRuleId) {
+
+    const stillSelected = safe.find((r) => r.id === selectedRuleId);
+    if (stillSelected) {
+      setRuleForm(ruleToForm(stillSelected));
+      return;
+    }
+
+    if (safe.length > 0) {
       setSelectedRuleId(safe[0].id);
       setRuleForm(ruleToForm(safe[0]));
+    } else {
+      setSelectedRuleId("__new__");
+      setRuleForm(emptyRuleForm(selectedMonth));
     }
   }
 
   async function loadDebtAccounts(hId) {
-    const { data, error } = await supabase.from("debt_accounts").select("*").eq("household_id", hId).order("payoff_priority", { ascending: true });
+    const { data, error } = await supabase
+      .from("debt_accounts")
+      .select("*")
+      .eq("household_id", hId)
+      .order("payoff_priority", { ascending: true });
+
     if (error) {
       setMessage("Schuldenkonten konnten nicht geladen werden: " + error.message);
       return;
     }
+
     setDebtAccounts(data || []);
   }
 
   async function loadBookingActions(hId) {
-    const { data, error } = await supabase.from("booking_actions").select("*").eq("household_id", hId).order("planned_date", { ascending: true });
+    const { data, error } = await supabase
+      .from("booking_actions")
+      .select("*")
+      .eq("household_id", hId)
+      .order("planned_date", { ascending: true });
+
     if (error) {
       setMessage("Buchungsaktionen konnten nicht geladen werden: " + error.message);
       return;
     }
+
     setBookingActions(data || []);
   }
 
   async function loadManualTransactions(hId) {
-    const { data, error } = await supabase.from("manual_transactions").select("*").eq("household_id", hId).order("booking_date", { ascending: true });
+    const { data, error } = await supabase
+      .from("manual_transactions")
+      .select("*")
+      .eq("household_id", hId)
+      .order("booking_date", { ascending: true });
+
     if (error) {
       setMessage("Manuelle Buchungen konnten nicht geladen werden: " + error.message);
       return;
     }
+
     setManualTransactions(data || []);
   }
 
   async function handleLogin(e) {
     e.preventDefault();
     setMessage(tr(lang, "loginRunning"));
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setMessage("Login-Fehler: " + error.message);
       return;
     }
+
     setMessage(tr(lang, "loggedIn"));
   }
 
@@ -837,13 +1514,17 @@ export default function App() {
       setMessage("Logout-Fehler: " + error.message);
       return;
     }
+
     setSession(null);
     setProfile(null);
     setHouseholdId(null);
+    setHouseholdName("");
     setRules([]);
     setDebtAccounts([]);
     setBookingActions([]);
     setManualTransactions([]);
+    setSelectedRuleId("");
+    setRuleForm(emptyRuleForm(selectedMonth));
     setMessage(tr(lang, "notLoggedIn"));
   }
 
@@ -851,10 +1532,12 @@ export default function App() {
     if (!rules.length) return { start: "2026-04", end: "2027-03" };
     let start = rules[0].start_month || "2026-04";
     let end = rules[0].end_month || "2027-03";
+
     for (const rule of rules) {
       if (rule.start_month && monthIndex(rule.start_month) < monthIndex(start)) start = rule.start_month;
       if (rule.end_month && monthIndex(rule.end_month) > monthIndex(end)) end = rule.end_month;
     }
+
     return { start, end };
   }, [rules]);
 
@@ -867,13 +1550,11 @@ export default function App() {
     }
   }, [monthOptions, selectedMonth]);
 
-  const todayStr = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
-
   const plannedOccurrences = useMemo(() => buildPlannedOccurrences(rules, monthOptions), [rules, monthOptions]);
-  const plannedWithActions = useMemo(() => mergePlannedWithActions(plannedOccurrences, bookingActions), [plannedOccurrences, bookingActions]);
+  const plannedWithActions = useMemo(
+    () => mergePlannedWithActions(plannedOccurrences, bookingActions),
+    [plannedOccurrences, bookingActions]
+  );
 
   const summariesByMonth = useMemo(() => {
     const result = {};
@@ -883,50 +1564,97 @@ export default function App() {
     return result;
   }, [monthOptions, plannedWithActions, manualTransactions]);
 
-  const selectedSummary = summariesByMonth[selectedMonth] || { income: 0, expense: 0, net: 0, categories: [], plannedItems: [], manualItems: [] };
-  const debtPlan = useMemo(() => buildDebtPlan(monthOptions, summariesByMonth, debtAccounts), [monthOptions, summariesByMonth, debtAccounts]);
-  const selectedDebtRow = useMemo(() => debtPlan.find((row) => row.month === selectedMonth) || debtPlan[0], [debtPlan, selectedMonth]);
+  const selectedSummary =
+    summariesByMonth[selectedMonth] || {
+      plannedIncome: 0,
+      plannedExpense: 0,
+      plannedNet: 0,
+      actualIncome: 0,
+      actualExpense: 0,
+      actualNet: 0,
+      categories: [],
+      plannedItems: [],
+      manualItems: [],
+    };
 
-  const todayOpenItems = useMemo(() => plannedWithActions.filter((x) => x.planned_date === todayStr && x.status === "open"), [plannedWithActions, todayStr]);
-  const overdueItems = useMemo(() => plannedWithActions.filter((x) => x.planned_date < todayStr && x.status === "open"), [plannedWithActions, todayStr]);
+  const debtPlan = useMemo(
+    () => buildDebtPlan(monthOptions, summariesByMonth, debtAccounts),
+    [monthOptions, summariesByMonth, debtAccounts]
+  );
+
+  const selectedDebtRow = useMemo(
+    () => debtPlan.find((row) => row.month === selectedMonth) || debtPlan[0],
+    [debtPlan, selectedMonth]
+  );
+
+  const todayOpenItems = useMemo(
+    () => plannedWithActions.filter((x) => x.planned_date === todayStr && x.status === "open"),
+    [plannedWithActions, todayStr]
+  );
+
+  const overdueItems = useMemo(
+    () => plannedWithActions.filter((x) => x.planned_date < todayStr && x.status === "open"),
+    [plannedWithActions, todayStr]
+  );
+
   const next7Items = useMemo(() => {
     return plannedWithActions.filter((x) => {
       if (x.status !== "open") return false;
-      const diff = (new Date(`${x.planned_date}T00:00:00`) - new Date(`${todayStr}T00:00:00`)) / (1000 * 60 * 60 * 24);
+      const diff =
+        (new Date(`${x.planned_date}T00:00:00`) - new Date(`${todayStr}T00:00:00`)) / (1000 * 60 * 60 * 24);
       return diff >= 1 && diff <= 7;
     });
   }, [plannedWithActions, todayStr]);
 
-  function statusChip(statusKey) {
-    const colors = {
-      confirmed: { bg: `${palette.success}22`, color: palette.success },
-      skipped: { bg: palette.border, color: palette.sub },
-      overdue: { bg: `${palette.danger}22`, color: palette.danger },
-      today: { bg: `${palette.warning}22`, color: palette.warning },
-      open: { bg: palette.accentSoft, color: palette.accent },
-    };
-    const c = colors[statusKey] || colors.open;
-    return { ...styles.chip, background: c.bg, color: c.color };
-  }
+  const displayItems = useMemo(() => {
+    const planned = selectedSummary.plannedItems.map((item) => ({
+      ...item,
+      source: "rule",
+    }));
 
-  async function saveBookingAction(item, actionType) {
+    const manual = selectedSummary.manualItems.map((item) => ({
+      id: item.id,
+      key: `manual_${item.id}`,
+      source: "manual",
+      rule_id: null,
+      month: item.booking_date?.slice(0, 7),
+      title: item.title,
+      type: item.type,
+      planned_amount: Number(item.amount || 0),
+      actual_amount: Number(item.amount || 0),
+      planned_date: item.booking_date,
+      actual_date: item.booking_date,
+      category: item.category || "Sonstiges",
+      account: item.account || "Hauptkonto",
+      note: item.note || "",
+      actual_note: item.note || "",
+      status: "confirmed",
+    }));
+
+    return [...planned, ...manual].sort((a, b) => {
+      if (a.planned_date === b.planned_date) return a.title.localeCompare(b.title);
+      return a.planned_date.localeCompare(b.planned_date);
+    });
+  }, [selectedSummary]);
+
+  const incomeDisplayItems = useMemo(
+    () => displayItems.filter((item) => item.type === "income"),
+    [displayItems]
+  );
+
+  const expenseDisplayItems = useMemo(
+    () => displayItems.filter((item) => item.type === "expense"),
+    [displayItems]
+  );
+
+  async function persistBookingAction(item, actionType, override = {}) {
     if (!isOwner) {
       setMessage(tr(lang, "onlyOwner"));
       return;
     }
-    setSavingActionKey(`${item.rule_id}_${item.planned_date}_${actionType}`);
 
-    const actualAmountInput = actionType === "skip" ? 0 : prompt(tr(lang, "actualAmount"), String(item.actual_amount ?? item.planned_amount));
-    if (actualAmountInput === null && actionType !== "skip") {
-      setSavingActionKey("");
-      return;
-    }
-    const actualDateInput = actionType === "skip" ? item.planned_date : prompt(tr(lang, "actualDate"), item.actual_date || item.planned_date);
-    if (actualDateInput === null && actionType !== "skip") {
-      setSavingActionKey("");
-      return;
-    }
-    const actualNoteInput = prompt(tr(lang, "note"), item.actual_note || item.note || "") ?? "";
+    const key = `${item.rule_id}_${item.planned_date}_${actionType}`;
+    setSavingActionKey(key);
 
     const payload = {
       household_id: householdId,
@@ -939,11 +1667,12 @@ export default function App() {
       planned_account: item.account,
       planned_note: item.note,
       status: actionType === "skip" ? "skipped" : "confirmed",
-      actual_date: actionType === "skip" ? item.planned_date : actualDateInput,
-      actual_amount: actionType === "skip" ? 0 : Number(actualAmountInput),
-      actual_note: actualNoteInput,
+      actual_date: actionType === "skip" ? item.planned_date : item.planned_date,
+      actual_amount: actionType === "skip" ? 0 : Number(item.planned_amount),
+      actual_note: "",
       created_by: profile?.id || null,
       updated_at: new Date().toISOString(),
+      ...override,
     };
 
     let error;
@@ -964,8 +1693,40 @@ export default function App() {
     setMessage(tr(lang, "bookingActionSaved"));
   }
 
+  function openActionEditor(item) {
+    setActionEditorItem(item);
+    setActionEditorForm({
+      actual_amount: String(item.actual_amount ?? item.planned_amount ?? ""),
+      actual_date: item.actual_date || item.planned_date,
+      actual_note: item.actual_note || item.note || "",
+    });
+  }
+
+  function closeActionEditor() {
+    setActionEditorItem(null);
+    setActionEditorForm({
+      actual_amount: "",
+      actual_date: "",
+      actual_note: "",
+    });
+  }
+
+  async function handleSaveActionEditor() {
+    if (!actionEditorItem) return;
+
+    await persistBookingAction(actionEditorItem, "confirm", {
+      status: "confirmed",
+      actual_amount: Number(actionEditorForm.actual_amount || 0),
+      actual_date: actionEditorForm.actual_date,
+      actual_note: actionEditorForm.actual_note || "",
+    });
+
+    closeActionEditor();
+  }
+
   async function handleSaveManual(e) {
     e.preventDefault();
+
     if (!isOwner) {
       setMessage(tr(lang, "onlyOwner"));
       return;
@@ -1002,35 +1763,42 @@ export default function App() {
 
   function handleSelectRule(id) {
     setSelectedRuleId(id);
+
     if (id === "__new__") {
       setRuleForm(emptyRuleForm(selectedMonth));
       return;
     }
+
     const rule = rules.find((r) => r.id === id);
     if (rule) setRuleForm(ruleToForm(rule));
   }
 
   async function handleSaveRule(e) {
     e.preventDefault();
+
     if (!isOwner) {
       setMessage(tr(lang, "onlyOwner"));
       return;
     }
+
     const payload = formToRulePayload(ruleForm, householdId);
     if (!payload.title || !Number.isFinite(payload.amount)) {
       setMessage("Titel oder Betrag ungültig.");
       return;
     }
+
     let error;
     if (ruleForm.id) {
       ({ error } = await supabase.from("rules").update(payload).eq("id", ruleForm.id));
     } else {
       ({ error } = await supabase.from("rules").insert(payload));
     }
+
     if (error) {
       setMessage("Fehler beim Speichern: " + error.message);
       return;
     }
+
     await loadRules(householdId);
     setMessage(tr(lang, "ruleSaved"));
   }
@@ -1040,13 +1808,15 @@ export default function App() {
       setMessage(tr(lang, "onlyOwner"));
       return;
     }
+
     const { error } = await supabase.from("rules").delete().eq("id", ruleForm.id);
     if (error) {
       setMessage("Fehler beim Löschen: " + error.message);
       return;
     }
+
     await loadRules(householdId);
-    setSelectedRuleId("");
+    setSelectedRuleId("__new__");
     setRuleForm(emptyRuleForm(selectedMonth));
     setMessage(tr(lang, "ruleDeleted"));
   }
@@ -1058,70 +1828,94 @@ export default function App() {
     setUi((prev) => ({ ...prev, [key]: base64 }));
   }
 
-  function BookingCard({ item, showActions = true }) {
-    const visualStatus = inferOccurrenceStatus(item, todayStr);
-    return (
-      <div style={styles.bookingCard}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "start" }}>
-          <div>
-            <div style={{ fontWeight: 800 }}>{item.title}</div>
-            <div style={styles.subtle}>{formatDate(item.planned_date, lang)} · {item.type === "income" ? tr(lang, "income") : tr(lang, "expense")}</div>
-            <div style={styles.subtle}>{item.category} · {item.account}</div>
-          </div>
-          <div style={statusChip(visualStatus)}>{mapStatus(lang, visualStatus)}</div>
-        </div>
+  async function handleRequestNotifications() {
+    if (!("Notification" in window)) {
+      setNotificationPermission("unsupported");
+      return;
+    }
 
-        <div style={styles.grid2}>
-          <div>
-            <div style={styles.subtle}>{tr(lang, "amount")}</div>
-            <div style={{ fontWeight: 800 }}>{formatCurrency(item.planned_amount)}</div>
-          </div>
-          <div>
-            <div style={styles.subtle}>{tr(lang, "actualAmount")}</div>
-            <div style={{ fontWeight: 800 }}>{item.status === "confirmed" ? formatCurrency(item.actual_amount) : item.status === "skipped" ? formatCurrency(0) : "-"}</div>
-          </div>
-        </div>
-
-        {item.actual_date || item.actual_note ? (
-          <div style={styles.subtle}>
-            {item.actual_date ? `${tr(lang, "actualDate")}: ${formatDate(item.actual_date, lang)}` : ""}
-            {item.actual_date && item.actual_note ? " · " : ""}
-            {item.actual_note || ""}
-          </div>
-        ) : null}
-
-        {showActions && isOwner && item.status !== "confirmed" && item.status !== "skipped" ? (
-          <div style={styles.row}>
-            <button
-              style={{ ...styles.button, ...styles.buttonPrimary }}
-              onClick={() => saveBookingAction(item, "confirm")}
-              disabled={Boolean(savingActionKey)}
-            >
-              {savingActionKey === `${item.rule_id}_${item.planned_date}_confirm` ? tr(lang, "saving") : tr(lang, "confirm")}
-            </button>
-            <button style={styles.button} onClick={() => saveBookingAction(item, "confirm")}>{tr(lang, "editAmount")}</button>
-            <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => saveBookingAction(item, "skip")}>{tr(lang, "skip")}</button>
-          </div>
-        ) : null}
-      </div>
-    );
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
   }
 
-  function Section({ title, subtitle, children }) {
-    return (
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>{title}</h2>
-        {subtitle ? <div style={styles.cardSubtitle}>{subtitle}</div> : null}
-        {children}
-      </div>
-    );
+  function exportSelectedMonthCsv() {
+    const rows = [
+      ["Monat", selectedMonth],
+      [],
+      ["Typ", "Quelle", "Datum", "Titel", "Kategorie", "Konto", "Status", "Geplant", "Tatsächlich", "Notiz"],
+      ...displayItems.map((item) => [
+        item.type === "income" ? "Einnahme" : "Ausgabe",
+        item.source === "manual" ? "manuell" : "Regel",
+        item.planned_date,
+        item.title,
+        item.category,
+        item.account,
+        item.status,
+        item.planned_amount,
+        item.status === "confirmed" ? item.actual_amount : "",
+        item.actual_note || item.note || "",
+      ]),
+    ];
+
+    downloadCsv(`cashflow_${selectedMonth}.csv`, rows);
   }
+
+  function exportAllCsv() {
+    const rows = [
+      ["Monat", "Typ", "Quelle", "Datum", "Titel", "Kategorie", "Konto", "Status", "Geplant", "Tatsächlich", "Notiz"],
+    ];
+
+    monthOptions.forEach((month) => {
+      const summary = summariesByMonth[month];
+      const planned = summary.plannedItems.map((item) => ({
+        ...item,
+        source: "rule",
+      }));
+      const manual = summary.manualItems.map((item) => ({
+        source: "manual",
+        type: item.type,
+        planned_date: item.booking_date,
+        title: item.title,
+        category: item.category || "Sonstiges",
+        account: item.account || "Hauptkonto",
+        status: "confirmed",
+        planned_amount: item.amount,
+        actual_amount: item.amount,
+        actual_note: item.note || "",
+        note: item.note || "",
+      }));
+
+      [...planned, ...manual].forEach((item) => {
+        rows.push([
+          month,
+          item.type === "income" ? "Einnahme" : "Ausgabe",
+          item.source === "manual" ? "manuell" : "Regel",
+          item.planned_date,
+          item.title,
+          item.category,
+          item.account,
+          item.status,
+          item.planned_amount,
+          item.status === "confirmed" ? item.actual_amount : "",
+          item.actual_note || item.note || "",
+        ]);
+      });
+    });
+
+    downloadCsv("cashflow_gesamt.csv", rows);
+  }
+
+  const heroTitle = ui.headerTitle?.trim() || tr(lang, "appTitle");
+  const heroSubtitle = ui.headerSubtitle?.trim() || tr(lang, "appSubtitle");
 
   if (loading) {
     return (
       <div style={styles.page}>
         <div style={styles.container}>
-          <div style={styles.card}><h1 style={styles.cardTitle}>{tr(lang, "appTitle")}</h1><div style={styles.cardSubtitle}>{tr(lang, "loading")}</div></div>
+          <div style={styles.card}>
+            <h1 style={styles.cardTitle}>{tr(lang, "appTitle")}</h1>
+            <div style={styles.cardSubtitle}>{tr(lang, "loading")}</div>
+          </div>
         </div>
       </div>
     );
@@ -1133,17 +1927,43 @@ export default function App() {
         <div style={styles.container}>
           <div style={styles.hero}>
             <div style={styles.heroCard}>
-              <h1 style={styles.title}>{tr(lang, "appTitle")}</h1>
-              <div style={styles.subtitle}>{tr(lang, "appSubtitle")}</div>
+              {ui.headerImage ? <img src={ui.headerImage} alt="header" style={styles.heroImage} /> : null}
+              {ui.headerImage ? <div style={styles.heroOverlay} /> : null}
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <h1 style={styles.title}>{heroTitle}</h1>
+                <div style={styles.subtitle}>{heroSubtitle}</div>
+                {ui.showClock ? (
+                  <div style={{ marginTop: 12, fontSize: 13, fontWeight: 700 }}>
+                    {tr(lang, "currentTime")}: {formatClock(now, lang)}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
+
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>{tr(lang, "login")}</h2>
             <div style={styles.cardSubtitle}>{message}</div>
             <form onSubmit={handleLogin} style={{ display: "grid", gap: 12 }}>
-              <input style={styles.input} type="email" placeholder={tr(lang, "email")} value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <input style={styles.input} type="password" placeholder={tr(lang, "password")} value={password} onChange={(e) => setPassword(e.target.value)} required />
-              <button style={{ ...styles.button, ...styles.buttonPrimary }} type="submit">{tr(lang, "login")}</button>
+              <input
+                style={styles.input}
+                type="email"
+                placeholder={tr(lang, "email")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <input
+                style={styles.input}
+                type="password"
+                placeholder={tr(lang, "password")}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button style={{ ...styles.button, ...styles.buttonPrimary }} type="submit">
+                {tr(lang, "login")}
+              </button>
             </form>
           </div>
         </div>
@@ -1156,24 +1976,57 @@ export default function App() {
       <div style={styles.container}>
         <div style={styles.hero}>
           <div style={styles.heroCard}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-              <div>
-                <h1 style={styles.title}>{tr(lang, "appTitle")}</h1>
-                <div style={styles.subtitle}>{tr(lang, "appSubtitle")}</div>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {ui.profileMe ? <img src={ui.profileMe} alt="me" style={styles.avatar} /> : <div style={styles.avatarFallback}>T</div>}
-                {ui.profileWife ? <img src={ui.profileWife} alt="wife" style={styles.avatar} /> : <div style={styles.avatarFallback}>N</div>}
+            {ui.headerImage ? <img src={ui.headerImage} alt="header" style={styles.heroImage} /> : null}
+            {ui.headerImage ? <div style={styles.heroOverlay} /> : null}
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
+                <div>
+                  <h1 style={styles.title}>{heroTitle}</h1>
+                  <div style={styles.subtitle}>{heroSubtitle}</div>
+                  {ui.showClock ? (
+                    <div style={{ marginTop: 12, fontSize: 13, fontWeight: 700 }}>
+                      {tr(lang, "currentTime")}: {formatClock(now, lang)}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  {ui.profileMe ? (
+                    <img src={ui.profileMe} alt="me" style={styles.avatar} />
+                  ) : (
+                    <div style={styles.avatarFallback}>T</div>
+                  )}
+                  {ui.profileWife ? (
+                    <img src={ui.profileWife} alt="wife" style={styles.avatar} />
+                  ) : (
+                    <div style={styles.avatarFallback}>N</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           <div style={styles.controlsCard}>
             <div style={{ display: "grid", gap: 10 }}>
-              <select style={styles.input} value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setManualForm((prev) => ({ ...prev, booking_date: createDate(e.target.value, 15) })); }}>
-                {monthOptions.map((m) => <option key={m} value={m}>{formatMonth(m, lang)}</option>)}
+              <select
+                style={styles.input}
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setManualForm((prev) => ({ ...prev, booking_date: createDate(e.target.value, 15) }));
+                }}
+              >
+                {monthOptions.map((m) => (
+                  <option key={m} value={m}>
+                    {formatMonth(m, lang)}
+                  </option>
+                ))}
               </select>
-              <div style={styles.subtle}>{householdName || "-"} · {tr(lang, "role")}: {roleLabel(lang, profile?.role)}</div>
+
+              <div style={styles.subtle}>
+                {householdName || "-"} · {tr(lang, "role")}: {roleLabel(lang, profile?.role)}
+              </div>
               <div style={styles.subtle}>{message}</div>
             </div>
           </div>
@@ -1182,27 +2035,105 @@ export default function App() {
         {tab === "today" && (
           <div style={{ display: "grid", gap: 12 }}>
             <div style={styles.metrics}>
-              <div style={styles.metric}><div style={styles.metricLabel}>{tr(lang, "monthlyIncome")}</div><div style={styles.metricValue}>{formatCurrency(selectedSummary.income)}</div><div style={styles.metricHint}>{formatMonth(selectedMonth, lang)}</div></div>
-              <div style={styles.metric}><div style={styles.metricLabel}>{tr(lang, "monthlyExpense")}</div><div style={styles.metricValue}>{formatCurrency(selectedSummary.expense)}</div><div style={styles.metricHint}>{formatMonth(selectedMonth, lang)}</div></div>
-              <div style={styles.metric}><div style={styles.metricLabel}>{tr(lang, "availableBeforeDebt")}</div><div style={styles.metricValue}>{formatCurrency(selectedDebtRow?.availableBeforeDebt || 0)}</div><div style={styles.metricHint}>{tr(lang, "dashboard")}</div></div>
-              <div style={styles.metric}><div style={styles.metricLabel}>{tr(lang, "totalDebt")}</div><div style={styles.metricValue}>{formatCurrency(selectedDebtRow?.totalDebt || 0)}</div><div style={styles.metricHint}>{tr(lang, "reserveEnd")}: {formatCurrency(selectedDebtRow?.reserve || 0)}</div></div>
+              <MetricCard
+                styles={styles}
+                label={tr(lang, "actualIncome")}
+                value={formatSignedCurrency(selectedSummary.actualIncome, true)}
+                hint={formatMonth(selectedMonth, lang)}
+                color={palette.success}
+              />
+              <MetricCard
+                styles={styles}
+                label={tr(lang, "actualExpense")}
+                value={formatSignedCurrency(-selectedSummary.actualExpense, true)}
+                hint={formatMonth(selectedMonth, lang)}
+                color={palette.danger}
+              />
+              <MetricCard
+                styles={styles}
+                label={tr(lang, "actualNet")}
+                value={formatSignedCurrency(selectedSummary.actualNet, true)}
+                hint={tr(lang, "today")}
+                color={selectedSummary.actualNet >= 0 ? palette.success : palette.danger}
+              />
+              <MetricCard
+                styles={styles}
+                label={tr(lang, "totalDebt")}
+                value={formatSignedCurrency(-(selectedDebtRow?.totalDebt || 0), true)}
+                hint={`${tr(lang, "reserveEnd")}: ${formatSignedCurrency(selectedDebtRow?.reserve || 0, true)}`}
+                color={palette.danger}
+              />
             </div>
 
-            <Section title={tr(lang, "todayDue")} subtitle={tr(lang, "mobileHint")}>
+            <Section styles={styles} title={tr(lang, "todayDue")} subtitle={tr(lang, "mobileHint")}>
               <div style={{ display: "grid", gap: 10 }}>
-                {todayOpenItems.length ? todayOpenItems.map((item) => <BookingCard key={item.key} item={item} />) : <div style={styles.subtle}>{tr(lang, "noTasks")}</div>}
+                {todayOpenItems.length ? (
+                  todayOpenItems.map((item) => (
+                    <BookingCard
+                      key={item.key}
+                      styles={styles}
+                      palette={palette}
+                      lang={lang}
+                      item={item}
+                      todayStr={todayStr}
+                      isOwner={isOwner}
+                      onConfirm={(booking) => persistBookingAction(booking, "confirm")}
+                      onEdit={openActionEditor}
+                      onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      savingActionKey={savingActionKey}
+                    />
+                  ))
+                ) : (
+                  <div style={styles.subtle}>{tr(lang, "noTasks")}</div>
+                )}
               </div>
             </Section>
 
-            <Section title={tr(lang, "overdueItems")}>
+            <Section styles={styles} title={tr(lang, "overdueItems")}>
               <div style={{ display: "grid", gap: 10 }}>
-                {overdueItems.length ? overdueItems.map((item) => <BookingCard key={item.key} item={item} />) : <div style={styles.subtle}>{tr(lang, "noTasks")}</div>}
+                {overdueItems.length ? (
+                  overdueItems.map((item) => (
+                    <BookingCard
+                      key={item.key}
+                      styles={styles}
+                      palette={palette}
+                      lang={lang}
+                      item={item}
+                      todayStr={todayStr}
+                      isOwner={isOwner}
+                      onConfirm={(booking) => persistBookingAction(booking, "confirm")}
+                      onEdit={openActionEditor}
+                      onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      savingActionKey={savingActionKey}
+                    />
+                  ))
+                ) : (
+                  <div style={styles.subtle}>{tr(lang, "noTasks")}</div>
+                )}
               </div>
             </Section>
 
-            <Section title={tr(lang, "next7Days")}>
+            <Section styles={styles} title={tr(lang, "next7Days")}>
               <div style={{ display: "grid", gap: 10 }}>
-                {next7Items.length ? next7Items.map((item) => <BookingCard key={item.key} item={item} />) : <div style={styles.subtle}>{tr(lang, "noTasks")}</div>}
+                {next7Items.length ? (
+                  next7Items.map((item) => (
+                    <BookingCard
+                      key={item.key}
+                      styles={styles}
+                      palette={palette}
+                      lang={lang}
+                      item={item}
+                      todayStr={todayStr}
+                      isOwner={isOwner}
+                      onConfirm={(booking) => persistBookingAction(booking, "confirm")}
+                      onEdit={openActionEditor}
+                      onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      savingActionKey={savingActionKey}
+                    />
+                  ))
+                ) : (
+                  <div style={styles.subtle}>{tr(lang, "noTasks")}</div>
+                )}
               </div>
             </Section>
           </div>
@@ -1210,39 +2141,180 @@ export default function App() {
 
         {tab === "plan" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <Section title={tr(lang, "planOverview")} subtitle={formatMonth(selectedMonth, lang)}>
-              <div style={{ display: "grid", gap: 10 }}>
-                {selectedSummary.plannedItems.map((item) => <BookingCard key={item.key} item={item} />)}
-                {selectedSummary.manualItems.map((item) => (
-                  <div key={item.id} style={styles.bookingCard}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                      <div>
-                        <div style={{ fontWeight: 800 }}>{item.title}</div>
-                        <div style={styles.subtle}>{formatDate(item.booking_date, lang)} · {item.type === "income" ? tr(lang, "income") : tr(lang, "expense")}</div>
-                        <div style={styles.subtle}>{item.category || "Sonstiges"} · {item.account || "Hauptkonto"}</div>
-                      </div>
-                      <div style={statusChip("confirmed")}>{tr(lang, "confirmed")}</div>
-                    </div>
-                    <div style={{ fontWeight: 800 }}>{formatCurrency(item.amount)}</div>
-                    {item.note ? <div style={styles.subtle}>{item.note}</div> : null}
-                  </div>
-                ))}
-                {!selectedSummary.plannedItems.length && !selectedSummary.manualItems.length ? <div style={styles.subtle}>{tr(lang, "noData")}</div> : null}
+            <Section
+              styles={styles}
+              title={tr(lang, "planVsActual")}
+              subtitle={formatMonth(selectedMonth, lang)}
+              right={
+                <div style={styles.row}>
+                  <button type="button" style={styles.button} onClick={exportSelectedMonthCsv}>
+                    {tr(lang, "exportMonthCsv")}
+                  </button>
+                  <button type="button" style={styles.button} onClick={exportAllCsv}>
+                    {tr(lang, "exportAllCsv")}
+                  </button>
+                </div>
+              }
+            >
+              <div style={styles.metrics}>
+                <MetricCard
+                  styles={styles}
+                  label={tr(lang, "plannedIncome")}
+                  value={formatSignedCurrency(selectedSummary.plannedIncome, true)}
+                  color={palette.accent}
+                />
+                <MetricCard
+                  styles={styles}
+                  label={tr(lang, "actualIncome")}
+                  value={formatSignedCurrency(selectedSummary.actualIncome, true)}
+                  color={palette.success}
+                />
+                <MetricCard
+                  styles={styles}
+                  label={tr(lang, "plannedExpense")}
+                  value={formatSignedCurrency(-selectedSummary.plannedExpense, true)}
+                  color={palette.danger}
+                />
+                <MetricCard
+                  styles={styles}
+                  label={tr(lang, "actualExpense")}
+                  value={formatSignedCurrency(-selectedSummary.actualExpense, true)}
+                  color={palette.warning}
+                />
+                <MetricCard
+                  styles={styles}
+                  label={tr(lang, "plannedNet")}
+                  value={formatSignedCurrency(selectedSummary.plannedNet, true)}
+                  color={selectedSummary.plannedNet >= 0 ? palette.success : palette.danger}
+                />
+                <MetricCard
+                  styles={styles}
+                  label={tr(lang, "actualNet")}
+                  value={formatSignedCurrency(selectedSummary.actualNet, true)}
+                  color={selectedSummary.actualNet >= 0 ? palette.success : palette.danger}
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                <ComparisonBar
+                  styles={styles}
+                  palette={palette}
+                  label={tr(lang, "income")}
+                  planned={selectedSummary.plannedIncome}
+                  actual={selectedSummary.actualIncome}
+                />
+                <ComparisonBar
+                  styles={styles}
+                  palette={palette}
+                  label={tr(lang, "expense")}
+                  planned={selectedSummary.plannedExpense}
+                  actual={selectedSummary.actualExpense}
+                  mode="expense"
+                />
+                <ComparisonBar
+                  styles={styles}
+                  palette={palette}
+                  label={tr(lang, "monthlyNet")}
+                  planned={Math.abs(selectedSummary.plannedNet)}
+                  actual={Math.abs(selectedSummary.actualNet)}
+                  mode={selectedSummary.actualNet < 0 ? "expense" : "normal"}
+                />
               </div>
             </Section>
 
-            <Section title={tr(lang, "category")} subtitle={formatMonth(selectedMonth, lang)}>
-              {selectedSummary.categories.length === 0 ? <div style={styles.subtle}>{tr(lang, "noData")}</div> : (
-                <div style={{ display: "grid", gap: 12 }}>
+            <Section styles={styles} title={tr(lang, "incomeList")} subtitle={`${tr(lang, "plusGreenHint")} · ${formatMonth(selectedMonth, lang)}`}>
+              <div style={{ display: "grid", gap: 10 }}>
+                {incomeDisplayItems.length ? (
+                  incomeDisplayItems.map((item) => (
+                    <BookingCard
+                      key={item.key}
+                      styles={styles}
+                      palette={palette}
+                      lang={lang}
+                      item={item}
+                      todayStr={todayStr}
+                      isOwner={isOwner}
+                      onConfirm={(booking) => persistBookingAction(booking, "confirm")}
+                      onEdit={openActionEditor}
+                      onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      savingActionKey={savingActionKey}
+                    />
+                  ))
+                ) : (
+                  <div style={styles.subtle}>{tr(lang, "noData")}</div>
+                )}
+              </div>
+            </Section>
+
+            <Section styles={styles} title={tr(lang, "expensesList")} subtitle={`${tr(lang, "minusRedHint")} · ${formatMonth(selectedMonth, lang)}`}>
+              <div style={{ display: "grid", gap: 10 }}>
+                {expenseDisplayItems.length ? (
+                  expenseDisplayItems.map((item) => (
+                    <BookingCard
+                      key={item.key}
+                      styles={styles}
+                      palette={palette}
+                      lang={lang}
+                      item={item}
+                      todayStr={todayStr}
+                      isOwner={isOwner}
+                      onConfirm={(booking) => persistBookingAction(booking, "confirm")}
+                      onEdit={openActionEditor}
+                      onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      savingActionKey={savingActionKey}
+                    />
+                  ))
+                ) : (
+                  <div style={styles.subtle}>{tr(lang, "noData")}</div>
+                )}
+              </div>
+            </Section>
+
+            <Section styles={styles} title={tr(lang, "categoriesOverview")} subtitle={formatMonth(selectedMonth, lang)}>
+              {selectedSummary.categories.length === 0 ? (
+                <div style={styles.subtle}>{tr(lang, "noData")}</div>
+              ) : (
+                <div style={{ display: "grid", gap: 14 }}>
                   {selectedSummary.categories.map((cat) => {
-                    const max = Math.max(...selectedSummary.categories.map((x) => x.value), 1);
+                    const max = Math.max(...selectedSummary.categories.map((x) => x.total), 1);
                     return (
-                      <div key={cat.label}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6, fontSize: 13 }}>
+                      <div key={cat.label} style={{ display: "grid", gap: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                           <strong>{cat.label}</strong>
-                          <span>{formatCurrency(cat.value)}</span>
+                          <span style={styles.subtle}>{formatSignedCurrency(cat.net, true)}</span>
                         </div>
-                        <div style={styles.chartTrack}><div style={{ width: `${(cat.value / max) * 100}%`, height: 12, background: palette.accent }} /></div>
+
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: palette.sub, marginBottom: 4 }}>
+                            <span>{tr(lang, "income")}</span>
+                            <span style={{ color: palette.success }}>{formatSignedCurrency(cat.income, true)}</span>
+                          </div>
+                          <div style={styles.chartTrack}>
+                            <div
+                              style={{
+                                width: `${(cat.income / max) * 100}%`,
+                                height: 12,
+                                background: palette.success,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: palette.sub, marginBottom: 4 }}>
+                            <span>{tr(lang, "expense")}</span>
+                            <span style={{ color: palette.danger }}>{formatSignedCurrency(-cat.expense, true)}</span>
+                          </div>
+                          <div style={styles.chartTrack}>
+                            <div
+                              style={{
+                                width: `${(cat.expense / max) * 100}%`,
+                                height: 12,
+                                background: palette.danger,
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -1254,23 +2326,70 @@ export default function App() {
 
         {tab === "book" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <Section title={tr(lang, "bookNow")} subtitle={isOwner ? tr(lang, "mobileHint") : tr(lang, "onlyOwner")}>
+            <Section styles={styles} title={tr(lang, "bookNow")} subtitle={isOwner ? tr(lang, "mobileHint") : tr(lang, "onlyOwner")}>
               <form onSubmit={handleSaveManual} style={{ display: "grid", gap: 10 }}>
-                <input style={styles.input} type="date" value={manualForm.booking_date} onChange={(e) => setManualForm((prev) => ({ ...prev, booking_date: e.target.value }))} disabled={!isOwner} />
-                <input style={styles.input} value={manualForm.title} onChange={(e) => setManualForm((prev) => ({ ...prev, title: e.target.value }))} placeholder={tr(lang, "title")} required disabled={!isOwner} />
+                <input
+                  style={styles.input}
+                  type="date"
+                  value={manualForm.booking_date}
+                  onChange={(e) => setManualForm((prev) => ({ ...prev, booking_date: e.target.value }))}
+                  disabled={!isOwner}
+                />
+                <input
+                  style={styles.input}
+                  value={manualForm.title}
+                  onChange={(e) => setManualForm((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder={tr(lang, "title")}
+                  required
+                  disabled={!isOwner}
+                />
                 <div style={styles.grid2}>
-                  <select style={styles.input} value={manualForm.type} onChange={(e) => setManualForm((prev) => ({ ...prev, type: e.target.value }))} disabled={!isOwner}>
+                  <select
+                    style={styles.input}
+                    value={manualForm.type}
+                    onChange={(e) => setManualForm((prev) => ({ ...prev, type: e.target.value }))}
+                    disabled={!isOwner}
+                  >
                     <option value="expense">{tr(lang, "expense")}</option>
                     <option value="income">{tr(lang, "income")}</option>
                   </select>
-                  <input style={styles.input} type="number" step="0.01" value={manualForm.amount} onChange={(e) => setManualForm((prev) => ({ ...prev, amount: e.target.value }))} placeholder={tr(lang, "amount")} required disabled={!isOwner} />
+                  <input
+                    style={styles.input}
+                    type="number"
+                    step="0.01"
+                    value={manualForm.amount}
+                    onChange={(e) => setManualForm((prev) => ({ ...prev, amount: e.target.value }))}
+                    placeholder={tr(lang, "amount")}
+                    required
+                    disabled={!isOwner}
+                  />
                 </div>
                 <div style={styles.grid2}>
-                  <input style={styles.input} value={manualForm.category} onChange={(e) => setManualForm((prev) => ({ ...prev, category: e.target.value }))} placeholder={tr(lang, "category")} disabled={!isOwner} />
-                  <input style={styles.input} value={manualForm.account} onChange={(e) => setManualForm((prev) => ({ ...prev, account: e.target.value }))} placeholder={tr(lang, "account")} disabled={!isOwner} />
+                  <input
+                    style={styles.input}
+                    value={manualForm.category}
+                    onChange={(e) => setManualForm((prev) => ({ ...prev, category: e.target.value }))}
+                    placeholder={tr(lang, "category")}
+                    disabled={!isOwner}
+                  />
+                  <input
+                    style={styles.input}
+                    value={manualForm.account}
+                    onChange={(e) => setManualForm((prev) => ({ ...prev, account: e.target.value }))}
+                    placeholder={tr(lang, "account")}
+                    disabled={!isOwner}
+                  />
                 </div>
-                <textarea style={styles.textarea} value={manualForm.note} onChange={(e) => setManualForm((prev) => ({ ...prev, note: e.target.value }))} placeholder={tr(lang, "note")} disabled={!isOwner} />
-                <button type="submit" style={{ ...styles.button, ...styles.buttonPrimary }} disabled={!isOwner}>{tr(lang, "addBooking")}</button>
+                <textarea
+                  style={styles.textarea}
+                  value={manualForm.note}
+                  onChange={(e) => setManualForm((prev) => ({ ...prev, note: e.target.value }))}
+                  placeholder={tr(lang, "note")}
+                  disabled={!isOwner}
+                />
+                <button type="submit" style={{ ...styles.button, ...styles.buttonPrimary }} disabled={!isOwner}>
+                  {tr(lang, "addBooking")}
+                </button>
               </form>
             </Section>
           </div>
@@ -1278,35 +2397,82 @@ export default function App() {
 
         {tab === "debt" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <Section title={tr(lang, "debtAccounts")} subtitle={formatMonth(selectedMonth, lang)}>
+            <Section styles={styles} title={tr(lang, "debtAccounts")} subtitle={formatMonth(selectedMonth, lang)}>
               <div style={{ display: "grid", gap: 10 }}>
-                {selectedDebtRow?.perAccount?.map((acc) => (
-                  <div key={acc.id} style={styles.bookingCard}>
-                    <div style={{ fontWeight: 800 }}>{acc.name}</div>
-                    <div style={styles.grid2}>
-                      <div><div style={styles.subtle}>Start</div><div style={{ fontWeight: 800 }}>{formatCurrency(acc.principalStart + acc.accruedStart)}</div></div>
-                      <div><div style={styles.subtle}>{tr(lang, "paymentToDebt")}</div><div style={{ fontWeight: 800, color: palette.accent }}>{formatCurrency(acc.payment)}</div></div>
-                      <div><div style={styles.subtle}>Zinsen</div><div style={{ fontWeight: 800 }}>{formatCurrency(acc.bookedInterest)}</div></div>
-                      <div><div style={styles.subtle}>Ende</div><div style={{ fontWeight: 800 }}>{formatCurrency(acc.totalEnd)}</div></div>
+                {selectedDebtRow?.perAccount?.length ? (
+                  selectedDebtRow.perAccount.map((acc) => (
+                    <div key={acc.id} style={styles.bookingCard}>
+                      <div style={{ fontWeight: 800 }}>{acc.name}</div>
+                      <div style={styles.grid2}>
+                        <div>
+                          <div style={styles.subtle}>Start</div>
+                          <div style={{ fontWeight: 800, color: palette.danger }}>
+                            {formatSignedCurrency(-(acc.principalStart + acc.accruedStart), true)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={styles.subtle}>{tr(lang, "paymentToDebt")}</div>
+                          <div style={{ fontWeight: 800, color: palette.success }}>
+                            {formatSignedCurrency(acc.payment, true)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={styles.subtle}>Zinsen</div>
+                          <div style={{ fontWeight: 800, color: palette.danger }}>
+                            {formatSignedCurrency(-acc.bookedInterest, true)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={styles.subtle}>Ende</div>
+                          <div style={{ fontWeight: 800, color: palette.danger }}>
+                            {formatSignedCurrency(-acc.totalEnd, true)}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div style={styles.subtle}>{tr(lang, "noData")}</div>
+                )}
               </div>
             </Section>
 
-            <Section title={tr(lang, "debtPlan")} subtitle={tr(lang, "dashboard")}>
+            <Section styles={styles} title={tr(lang, "debtPlan")} subtitle={tr(lang, "planVsActual")}>
               <div style={{ display: "grid", gap: 10 }}>
                 {debtPlan.map((row) => (
                   <div key={row.month} style={styles.bookingCard}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                       <div style={{ fontWeight: 800 }}>{formatMonth(row.month, lang)}</div>
-                      <div style={statusChip(row.totalDebt === 0 ? "confirmed" : "open")}>{formatCurrency(row.totalDebt)}</div>
+                      <div style={{ ...styles.chip, background: `${palette.danger}22`, color: palette.danger }}>
+                        {formatSignedCurrency(-row.totalDebt, true)}
+                      </div>
                     </div>
+
                     <div style={styles.grid2}>
-                      <div><div style={styles.subtle}>{tr(lang, "availableBeforeDebt")}</div><div style={{ fontWeight: 800 }}>{formatCurrency(row.availableBeforeDebt)}</div></div>
-                      <div><div style={styles.subtle}>{tr(lang, "paymentToDebt")}</div><div style={{ fontWeight: 800 }}>{formatCurrency(row.totalPayment)}</div></div>
-                      <div><div style={styles.subtle}>{tr(lang, "reserveEnd")}</div><div style={{ fontWeight: 800 }}>{formatCurrency(row.reserve)}</div></div>
-                      <div><div style={styles.subtle}>{tr(lang, "totalDebt")}</div><div style={{ fontWeight: 800 }}>{formatCurrency(row.totalDebt)}</div></div>
+                      <div>
+                        <div style={styles.subtle}>{tr(lang, "availableBeforeDebt")}</div>
+                        <div style={{ fontWeight: 800, color: row.availableBeforeDebt >= 0 ? palette.success : palette.danger }}>
+                          {formatSignedCurrency(row.availableBeforeDebt, true)}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={styles.subtle}>{tr(lang, "paymentToDebt")}</div>
+                        <div style={{ fontWeight: 800, color: palette.success }}>
+                          {formatSignedCurrency(row.totalPayment, true)}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={styles.subtle}>{tr(lang, "reserveEnd")}</div>
+                        <div style={{ fontWeight: 800, color: palette.success }}>
+                          {formatSignedCurrency(row.reserve, true)}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={styles.subtle}>{tr(lang, "totalDebt")}</div>
+                        <div style={{ fontWeight: 800, color: palette.danger }}>
+                          {formatSignedCurrency(-row.totalDebt, true)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1317,32 +2483,69 @@ export default function App() {
 
         {tab === "rules" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <Section title={tr(lang, "rules")} subtitle={tr(lang, "mobileHint")}>
+            <Section styles={styles} title={tr(lang, "rules")} subtitle={tr(lang, "mobileHint")}>
               <div style={{ display: "grid", gap: 10 }}>
                 <select style={styles.input} value={selectedRuleId} onChange={(e) => handleSelectRule(e.target.value)}>
                   {isOwner && <option value="__new__">{tr(lang, "newRule")}</option>}
                   {!selectedRuleId && !isOwner && <option value="">{tr(lang, "chooseRule")}</option>}
-                  {rules.map((rule) => <option key={rule.id} value={rule.id}>{rule.title}</option>)}
+                  {rules.map((rule) => (
+                    <option key={rule.id} value={rule.id}>
+                      {rule.title}
+                    </option>
+                  ))}
                 </select>
 
                 <form onSubmit={handleSaveRule} style={{ display: "grid", gap: 10 }}>
-                  <input style={styles.input} value={ruleForm.title} onChange={(e) => setRuleForm((prev) => ({ ...prev, title: e.target.value }))} placeholder={tr(lang, "title")} disabled={!isOwner} required />
+                  <input
+                    style={styles.input}
+                    value={ruleForm.title}
+                    onChange={(e) => setRuleForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder={tr(lang, "title")}
+                    disabled={!isOwner}
+                    required
+                  />
                   <div style={styles.grid2}>
-                    <select style={styles.input} value={ruleForm.type} onChange={(e) => setRuleForm((prev) => ({ ...prev, type: e.target.value }))} disabled={!isOwner}>
+                    <select
+                      style={styles.input}
+                      value={ruleForm.type}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, type: e.target.value }))}
+                      disabled={!isOwner}
+                    >
                       <option value="income">{tr(lang, "income")}</option>
                       <option value="expense">{tr(lang, "expense")}</option>
                     </select>
-                    <input style={styles.input} type="number" step="0.01" value={ruleForm.amount} onChange={(e) => setRuleForm((prev) => ({ ...prev, amount: e.target.value }))} placeholder={tr(lang, "amount")} disabled={!isOwner} required />
+                    <input
+                      style={styles.input}
+                      type="number"
+                      step="0.01"
+                      value={ruleForm.amount}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, amount: e.target.value }))}
+                      placeholder={tr(lang, "amount")}
+                      disabled={!isOwner}
+                      required
+                    />
                   </div>
+
                   <div style={styles.grid2}>
-                    <select style={styles.input} value={ruleForm.frequency} onChange={(e) => setRuleForm((prev) => ({ ...prev, frequency: e.target.value }))} disabled={!isOwner}>
+                    <select
+                      style={styles.input}
+                      value={ruleForm.frequency}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, frequency: e.target.value }))}
+                      disabled={!isOwner}
+                    >
                       <option value="monthly">{tr(lang, "monthly")}</option>
                       <option value="weekly">{tr(lang, "weekly")}</option>
                       <option value="everyOtherMonth">{tr(lang, "everyOtherMonth")}</option>
                       <option value="customMonths">{tr(lang, "customMonths")}</option>
                     </select>
+
                     {ruleForm.frequency === "weekly" ? (
-                      <select style={styles.input} value={ruleForm.weekday} onChange={(e) => setRuleForm((prev) => ({ ...prev, weekday: Number(e.target.value) }))} disabled={!isOwner}>
+                      <select
+                        style={styles.input}
+                        value={ruleForm.weekday}
+                        onChange={(e) => setRuleForm((prev) => ({ ...prev, weekday: Number(e.target.value) }))}
+                        disabled={!isOwner}
+                      >
                         <option value={1}>{tr(lang, "monday")}</option>
                         <option value={2}>{tr(lang, "tuesday")}</option>
                         <option value={3}>{tr(lang, "wednesday")}</option>
@@ -1352,23 +2555,94 @@ export default function App() {
                         <option value={0}>{tr(lang, "sunday")}</option>
                       </select>
                     ) : (
-                      <input style={styles.input} type="number" min="1" max="31" value={ruleForm.day} onChange={(e) => setRuleForm((prev) => ({ ...prev, day: e.target.value }))} placeholder={tr(lang, "dayOfMonth")} disabled={!isOwner} />
+                      <input
+                        style={styles.input}
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={ruleForm.day}
+                        onChange={(e) => setRuleForm((prev) => ({ ...prev, day: e.target.value }))}
+                        placeholder={tr(lang, "dayOfMonth")}
+                        disabled={!isOwner}
+                      />
                     )}
                   </div>
-                  {ruleForm.frequency === "customMonths" ? <input style={styles.input} value={ruleForm.customMonthsText} onChange={(e) => setRuleForm((prev) => ({ ...prev, customMonthsText: e.target.value }))} placeholder={tr(lang, "customMonthsHint")} disabled={!isOwner} /> : null}
+
+                  {ruleForm.frequency === "customMonths" ? (
+                    <input
+                      style={styles.input}
+                      value={ruleForm.customMonthsText}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, customMonthsText: e.target.value }))}
+                      placeholder={tr(lang, "customMonthsHint")}
+                      disabled={!isOwner}
+                    />
+                  ) : null}
+
                   <div style={styles.grid2}>
-                    <input style={styles.input} type="month" value={ruleForm.start_month} onChange={(e) => setRuleForm((prev) => ({ ...prev, start_month: e.target.value }))} disabled={!isOwner} />
-                    <input style={styles.input} type="month" value={ruleForm.end_month} onChange={(e) => setRuleForm((prev) => ({ ...prev, end_month: e.target.value }))} disabled={!isOwner} />
+                    <input
+                      style={styles.input}
+                      type="month"
+                      value={ruleForm.start_month}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, start_month: e.target.value }))}
+                      disabled={!isOwner}
+                    />
+                    <input
+                      style={styles.input}
+                      type="month"
+                      value={ruleForm.end_month}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, end_month: e.target.value }))}
+                      disabled={!isOwner}
+                    />
                   </div>
+
                   <div style={styles.grid2}>
-                    <input style={styles.input} value={ruleForm.category} onChange={(e) => setRuleForm((prev) => ({ ...prev, category: e.target.value }))} placeholder={tr(lang, "category")} disabled={!isOwner} />
-                    <input style={styles.input} value={ruleForm.account} onChange={(e) => setRuleForm((prev) => ({ ...prev, account: e.target.value }))} placeholder={tr(lang, "account")} disabled={!isOwner} />
+                    <input
+                      style={styles.input}
+                      value={ruleForm.category}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, category: e.target.value }))}
+                      placeholder={tr(lang, "category")}
+                      disabled={!isOwner}
+                    />
+                    <input
+                      style={styles.input}
+                      value={ruleForm.account}
+                      onChange={(e) => setRuleForm((prev) => ({ ...prev, account: e.target.value }))}
+                      placeholder={tr(lang, "account")}
+                      disabled={!isOwner}
+                    />
                   </div>
-                  <textarea style={styles.textarea} value={ruleForm.note} onChange={(e) => setRuleForm((prev) => ({ ...prev, note: e.target.value }))} placeholder={tr(lang, "note")} disabled={!isOwner} />
+
+                  <textarea
+                    style={styles.textarea}
+                    value={ruleForm.note}
+                    onChange={(e) => setRuleForm((prev) => ({ ...prev, note: e.target.value }))}
+                    placeholder={tr(lang, "note")}
+                    disabled={!isOwner}
+                  />
+
                   <div style={styles.row}>
-                    {isOwner ? <button type="submit" style={{ ...styles.button, ...styles.buttonPrimary }}>{tr(lang, "save")}</button> : null}
-                    {isOwner ? <button type="button" style={styles.button} onClick={() => { setSelectedRuleId("__new__"); setRuleForm(emptyRuleForm(selectedMonth)); }}>{tr(lang, "newRule")}</button> : null}
-                    {isOwner && ruleForm.id ? <button type="button" style={{ ...styles.button, ...styles.buttonDanger }} onClick={handleDeleteRule}>{tr(lang, "deleteRule")}</button> : null}
+                    {isOwner ? (
+                      <button type="submit" style={{ ...styles.button, ...styles.buttonPrimary }}>
+                        {tr(lang, "save")}
+                      </button>
+                    ) : null}
+                    {isOwner ? (
+                      <button
+                        type="button"
+                        style={styles.button}
+                        onClick={() => {
+                          setSelectedRuleId("__new__");
+                          setRuleForm(emptyRuleForm(selectedMonth));
+                        }}
+                      >
+                        {tr(lang, "newRule")}
+                      </button>
+                    ) : null}
+                    {isOwner && ruleForm.id ? (
+                      <button type="button" style={{ ...styles.button, ...styles.buttonDanger }} onClick={handleDeleteRule}>
+                        {tr(lang, "deleteRule")}
+                      </button>
+                    ) : null}
                   </div>
                 </form>
               </div>
@@ -1378,30 +2652,100 @@ export default function App() {
 
         {tab === "settings" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <Section title={tr(lang, "settingsTitle")} subtitle={tr(lang, "mobileHint")}>
+            <Section styles={styles} title={tr(lang, "settingsTitle")} subtitle={tr(lang, "mobileHint")}>
               <div style={{ display: "grid", gap: 14 }}>
                 <div>
                   <div style={{ fontWeight: 800, marginBottom: 8 }}>{tr(lang, "language")}</div>
                   <div style={styles.row}>
-                    <button style={ui.lang === "de" ? { ...styles.button, ...styles.buttonPrimary } : styles.button} onClick={() => setUi((prev) => ({ ...prev, lang: "de" }))}>Deutsch</button>
-                    <button style={ui.lang === "ru" ? { ...styles.button, ...styles.buttonPrimary } : styles.button} onClick={() => setUi((prev) => ({ ...prev, lang: "ru" }))}>Русский</button>
+                    <button
+                      type="button"
+                      style={ui.lang === "de" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
+                      onClick={() => setUi((prev) => ({ ...prev, lang: "de" }))}
+                    >
+                      Deutsch
+                    </button>
+                    <button
+                      type="button"
+                      style={ui.lang === "ru" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
+                      onClick={() => setUi((prev) => ({ ...prev, lang: "ru" }))}
+                    >
+                      Русский
+                    </button>
                   </div>
                 </div>
+
                 <div>
                   <div style={{ fontWeight: 800, marginBottom: 8 }}>{tr(lang, "theme")}</div>
                   <div style={styles.row}>
-                    <button style={ui.theme === "light" ? { ...styles.button, ...styles.buttonPrimary } : styles.button} onClick={() => setUi((prev) => ({ ...prev, theme: "light" }))}>{tr(lang, "light")}</button>
-                    <button style={ui.theme === "dark" ? { ...styles.button, ...styles.buttonPrimary } : styles.button} onClick={() => setUi((prev) => ({ ...prev, theme: "dark" }))}>{tr(lang, "dark")}</button>
+                    <button
+                      type="button"
+                      style={ui.theme === "light" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
+                      onClick={() => setUi((prev) => ({ ...prev, theme: "light" }))}
+                    >
+                      {tr(lang, "light")}
+                    </button>
+                    <button
+                      type="button"
+                      style={ui.theme === "dark" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
+                      onClick={() => setUi((prev) => ({ ...prev, theme: "dark" }))}
+                    >
+                      {tr(lang, "dark")}
+                    </button>
                   </div>
                 </div>
               </div>
             </Section>
 
-            <Section title={tr(lang, "familyPhotos")}>
+            <Section styles={styles} title={tr(lang, "headerSettings")} subtitle={tr(lang, "currentTime")}>
+              <div style={{ display: "grid", gap: 10 }}>
+                <input
+                  style={styles.input}
+                  value={ui.headerTitle}
+                  onChange={(e) => setUi((prev) => ({ ...prev, headerTitle: e.target.value }))}
+                  placeholder={tr(lang, "headerTitle")}
+                />
+                <textarea
+                  style={styles.textarea}
+                  value={ui.headerSubtitle}
+                  onChange={(e) => setUi((prev) => ({ ...prev, headerSubtitle: e.target.value }))}
+                  placeholder={tr(lang, "headerSubtitle")}
+                />
+                <div style={styles.row}>
+                  <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
+                    {tr(lang, "uploadImage")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => handleImageUpload("headerImage", e)}
+                    />
+                  </label>
+                  {ui.headerImage ? (
+                    <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, headerImage: "" }))}>
+                      {tr(lang, "removeImage")}
+                    </button>
+                  ) : null}
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>
+                  <input
+                    type="checkbox"
+                    checked={ui.showClock}
+                    onChange={(e) => setUi((prev) => ({ ...prev, showClock: e.target.checked }))}
+                  />
+                  {tr(lang, "showClock")}
+                </label>
+              </div>
+            </Section>
+
+            <Section styles={styles} title={tr(lang, "familyPhotos")}>
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={styles.bookingCard}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    {ui.profileMe ? <img src={ui.profileMe} alt="me" style={styles.avatar} /> : <div style={styles.avatarFallback}>T</div>}
+                    {ui.profileMe ? (
+                      <img src={ui.profileMe} alt="me" style={styles.avatar} />
+                    ) : (
+                      <div style={styles.avatarFallback}>T</div>
+                    )}
                     <div>
                       <div style={{ fontWeight: 800 }}>{tr(lang, "me")}</div>
                       <div style={styles.subtle}>{tr(lang, "uploadImage")}</div>
@@ -1412,12 +2756,21 @@ export default function App() {
                       {tr(lang, "uploadImage")}
                       <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleImageUpload("profileMe", e)} />
                     </label>
-                    {ui.profileMe ? <button style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileMe: "" }))}>{tr(lang, "removeImage")}</button> : null}
+                    {ui.profileMe ? (
+                      <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileMe: "" }))}>
+                        {tr(lang, "removeImage")}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
+
                 <div style={styles.bookingCard}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    {ui.profileWife ? <img src={ui.profileWife} alt="wife" style={styles.avatar} /> : <div style={styles.avatarFallback}>N</div>}
+                    {ui.profileWife ? (
+                      <img src={ui.profileWife} alt="wife" style={styles.avatar} />
+                    ) : (
+                      <div style={styles.avatarFallback}>N</div>
+                    )}
                     <div>
                       <div style={{ fontWeight: 800 }}>{tr(lang, "wife")}</div>
                       <div style={styles.subtle}>{tr(lang, "uploadImage")}</div>
@@ -1428,16 +2781,66 @@ export default function App() {
                       {tr(lang, "uploadImage")}
                       <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleImageUpload("profileWife", e)} />
                     </label>
-                    {ui.profileWife ? <button style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileWife: "" }))}>{tr(lang, "removeImage")}</button> : null}
+                    {ui.profileWife ? (
+                      <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileWife: "" }))}>
+                        {tr(lang, "removeImage")}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
-                <div style={styles.subtle}>{tr(lang, "user")}: {session.user.email}<br />{tr(lang, "household")}: {householdName || householdId || "-"}</div>
-                <button style={styles.button} onClick={handleLogout}>{tr(lang, "logout")}</button>
+              </div>
+            </Section>
+
+            <Section styles={styles} title={tr(lang, "notifications")} subtitle={tr(lang, "notificationsHint")}>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={styles.subtle}>
+                  {tr(lang, "notificationStatus")}:{" "}
+                  {notificationPermission === "granted"
+                    ? tr(lang, "allowed")
+                    : notificationPermission === "denied"
+                      ? tr(lang, "denied")
+                      : notificationPermission === "default"
+                        ? tr(lang, "defaultPermission")
+                        : "nicht unterstützt"}
+                </div>
+                {"Notification" in window ? (
+                  <button type="button" style={styles.button} onClick={handleRequestNotifications}>
+                    {tr(lang, "enableNotifications")}
+                  </button>
+                ) : (
+                  <div style={styles.subtle}>Dieser Browser unterstützt Notifications nicht.</div>
+                )}
+              </div>
+            </Section>
+
+            <Section styles={styles} title={tr(lang, "user")}>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={styles.subtle}>
+                  {tr(lang, "user")}: {session.user.email}
+                  <br />
+                  {tr(lang, "household")}: {householdName || householdId || "-"}
+                </div>
+                <button type="button" style={styles.button} onClick={handleLogout}>
+                  {tr(lang, "logout")}
+                </button>
               </div>
             </Section>
           </div>
         )}
       </div>
+
+      <ActionModal
+        styles={styles}
+        palette={palette}
+        lang={lang}
+        isOpen={Boolean(actionEditorItem)}
+        item={actionEditorItem}
+        form={actionEditorForm}
+        setForm={setActionEditorForm}
+        onClose={closeActionEditor}
+        onSave={handleSaveActionEditor}
+        saving={Boolean(savingActionKey)}
+      />
 
       <div style={styles.bottomNav}>
         {[
@@ -1448,7 +2851,12 @@ export default function App() {
           ["rules", tr(lang, "rules")],
           ["settings", tr(lang, "settings")],
         ].map(([key, label]) => (
-          <button key={key} style={tab === key ? { ...styles.navButton, ...styles.navButtonActive } : styles.navButton} onClick={() => setTab(key)}>
+          <button
+            key={key}
+            style={tab === key ? { ...styles.navButton, ...styles.navButtonActive } : styles.navButton}
+            onClick={() => setTab(key)}
+            type="button"
+          >
             {label}
           </button>
         ))}
