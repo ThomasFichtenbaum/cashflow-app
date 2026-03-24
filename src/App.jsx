@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 
-const UI_STORAGE_KEY = "cashflow-ui-v4";
+const UI_STORAGE_KEY = "cashflow-ui-v5";
 
 const texts = {
   de: {
@@ -115,7 +115,6 @@ const texts = {
     actualIncome: "Tatsächliche Einnahmen",
     actualExpense: "Tatsächliche Ausgaben",
     actualNet: "Tatsächlicher Saldo",
-    categoriesOverview: "Kategorienübersicht",
     expensesList: "Ausgaben",
     incomeList: "Einnahmen",
     allBookings: "Alle Buchungen",
@@ -131,16 +130,26 @@ const texts = {
     exportMonthCsv: "Monat als CSV exportieren",
     exportAllCsv: "Alles als CSV exportieren",
     notifications: "Notifications",
-    notificationsHint: "Browser-Berechtigung vorbereiten. Für echte Push-Notifications wäre später zusätzlich ein Service Worker sinnvoll.",
+    notificationsHint:
+      "Browser-Berechtigung vorbereiten. Für echte Push-Notifications wäre später zusätzlich ein Service Worker sinnvoll.",
     enableNotifications: "Berechtigung anfragen",
     notificationStatus: "Status",
     allowed: "erlaubt",
     denied: "abgelehnt",
     defaultPermission: "noch nicht entschieden",
+    unsupported: "nicht unterstützt",
+    browserNotSupported: "Dieser Browser unterstützt Notifications nicht.",
     planItems: "Plan-Buchungen",
     manualItems: "Manuelle Buchungen",
     plusGreenHint: "Plus = positiv",
     minusRedHint: "Minus = Belastung",
+    totalIncomeAll: "Einnahmen gesamt",
+    totalExpenseAll: "Ausgaben gesamt",
+    currentBalanceAll: "Saldo gesamt",
+    sinceStart: "Kumuliert",
+    selectedMonthLabel: "Aktueller Monat",
+    start: "Start",
+    interest: "Zinsen",
   },
   ru: {
     appTitle: "Cashflow-App",
@@ -253,7 +262,6 @@ const texts = {
     actualIncome: "Фактический доход",
     actualExpense: "Фактический расход",
     actualNet: "Фактический баланс",
-    categoriesOverview: "Категории",
     expensesList: "Расходы",
     incomeList: "Доходы",
     allBookings: "Все проводки",
@@ -269,16 +277,26 @@ const texts = {
     exportMonthCsv: "Экспорт месяца в CSV",
     exportAllCsv: "Экспорт всего в CSV",
     notifications: "Уведомления",
-    notificationsHint: "Подготовка разрешения браузера. Для настоящих push позже понадобится service worker.",
+    notificationsHint:
+      "Подготовка разрешения браузера. Для настоящих push позже понадобится service worker.",
     enableNotifications: "Запросить разрешение",
     notificationStatus: "Статус",
     allowed: "разрешено",
     denied: "отклонено",
     defaultPermission: "ещё не выбрано",
+    unsupported: "не поддерживается",
+    browserNotSupported: "Этот браузер не поддерживает уведомления.",
     planItems: "Плановые проводки",
     manualItems: "Ручные проводки",
     plusGreenHint: "Плюс = положительно",
     minusRedHint: "Минус = нагрузка",
+    totalIncomeAll: "Доходы всего",
+    totalExpenseAll: "Расходы всего",
+    currentBalanceAll: "Общий баланс",
+    sinceStart: "Накопительно",
+    selectedMonthLabel: "Текущий месяц",
+    start: "Старт",
+    interest: "Проценты",
   },
 };
 
@@ -316,8 +334,34 @@ const palettes = {
 };
 
 const monthNames = {
-  de: ["Jänner", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"],
-  ru: ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"],
+  de: [
+    "Jänner",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
+  ],
+  ru: [
+    "Январь",
+    "Февраль",
+    "Март",
+    "Апрель",
+    "Май",
+    "Июнь",
+    "Июль",
+    "Август",
+    "Сентябрь",
+    "Октябрь",
+    "Ноябрь",
+    "Декабрь",
+  ],
 };
 
 const DEFAULT_UI = {
@@ -394,10 +438,12 @@ function monthRange(startMonth, endMonth) {
   const start = new Date(`${startMonth}-01T00:00:00`);
   const end = new Date(`${endMonth}-01T00:00:00`);
   const d = new Date(start);
+
   while (d <= end) {
     result.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     d.setMonth(d.getMonth() + 1);
   }
+
   return result;
 }
 
@@ -419,18 +465,21 @@ function datesForWeeklyInMonth(month, weekday) {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(y, m - 1, 1);
   const result = [];
+
   while (d.getMonth() === m - 1) {
     if (d.getDay() === Number(weekday)) {
       result.push(`${y}-${String(m).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
     }
     d.setDate(d.getDate() + 1);
   }
+
   return result;
 }
 
 function normalizeMonths(value) {
   if (Array.isArray(value)) return value;
   if (!value) return [];
+
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
@@ -442,6 +491,7 @@ function normalizeMonths(value) {
         .filter(Boolean);
     }
   }
+
   return [];
 }
 
@@ -451,6 +501,7 @@ function ruleActiveInMonth(rule, month) {
 }
 
 function isEveryOtherMonthHit(rule, month) {
+  if (!rule.start_month) return false;
   return (monthIndex(month) - monthIndex(rule.start_month)) % 2 === 0;
 }
 
@@ -524,8 +575,10 @@ function inferOccurrenceStatus(item, todayStr) {
 
 function mergePlannedWithActions(planned, actions) {
   const actionMap = new Map(actions.map((a) => [`${a.rule_id}_${a.planned_date}`, a]));
+
   return planned.map((occ) => {
     const action = actionMap.get(occ.key);
+
     if (!action) {
       return {
         ...occ,
@@ -557,8 +610,6 @@ function summarizeMonth(selectedMonth, plannedWithActions, manualTransactions) {
   let actualIncome = 0;
   let actualExpense = 0;
 
-  const categoryMap = new Map();
-
   for (const item of monthPlanned) {
     const plannedAmount = Math.abs(Number(item.planned_amount || 0));
     const actualAmount = Math.abs(Number(item.actual_amount ?? item.planned_amount ?? 0));
@@ -570,37 +621,13 @@ function summarizeMonth(selectedMonth, plannedWithActions, manualTransactions) {
       if (item.status !== "skipped") plannedExpense += plannedAmount;
       if (item.status === "confirmed") actualExpense += actualAmount;
     }
-
-    const prev = categoryMap.get(item.category) || { label: item.category, income: 0, expense: 0 };
-    if (item.type === "income") {
-      if (item.status !== "skipped") prev.income += plannedAmount;
-    } else {
-      if (item.status !== "skipped") prev.expense += plannedAmount;
-    }
-    categoryMap.set(item.category, prev);
   }
 
   for (const tx of monthManual) {
     const amount = Math.abs(Number(tx.amount || 0));
-    if (tx.type === "income") {
-      actualIncome += amount;
-    } else {
-      actualExpense += amount;
-    }
-
-    const label = tx.category || "Sonstiges";
-    const prev = categoryMap.get(label) || { label, income: 0, expense: 0 };
-    if (tx.type === "income") {
-      prev.income += amount;
-    } else {
-      prev.expense += amount;
-    }
-    categoryMap.set(label, prev);
+    if (tx.type === "income") actualIncome += amount;
+    else actualExpense += amount;
   }
-
-  const categories = [...categoryMap.values()]
-    .map((x) => ({ ...x, total: x.income + x.expense, net: x.income - x.expense }))
-    .sort((a, b) => b.total - a.total);
 
   return {
     plannedIncome,
@@ -609,7 +636,6 @@ function summarizeMonth(selectedMonth, plannedWithActions, manualTransactions) {
     actualIncome,
     actualExpense,
     actualNet: actualIncome - actualExpense,
-    categories,
     plannedItems: monthPlanned,
     manualItems: monthManual,
   };
@@ -626,28 +652,32 @@ function round2(value) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 }
 
-function buildDebtPlan(months, summariesByMonth, debtAccounts) {
+function buildDebtPlan(months, summariesByMonth, debtAccounts, currentMonth) {
   const activeAccounts = [...debtAccounts]
     .filter((x) => x.is_active)
     .sort((a, b) => Number(a.payoff_priority || 999) - Number(b.payoff_priority || 999));
 
-  let reserve = 0;
   const running = new Map(
-    activeAccounts.map((acc) => [acc.id, { principal: Number(acc.start_balance || 0), accrued: 0 }])
+    activeAccounts.map((acc) => [
+      acc.id,
+      {
+        principal: Number(acc.start_balance || 0),
+        accrued: 0,
+      },
+    ])
   );
+
+  let reserve = 0;
 
   return months.map((month) => {
     const summary = summariesByMonth[month] || {
-      plannedIncome: 0,
-      plannedExpense: 0,
       plannedNet: 0,
-      actualIncome: 0,
-      actualExpense: 0,
       actualNet: 0,
-      categories: [],
     };
 
-    let available = round2(summary.actualNet || 0);
+    const reserveStart = reserve;
+    const baseNet = month <= currentMonth ? Number(summary.actualNet || 0) : Number(summary.plannedNet || 0);
+    let available = round2(reserveStart + baseNet);
     const perAccount = [];
 
     for (const acc of activeAccounts) {
@@ -658,6 +688,7 @@ function buildDebtPlan(months, summariesByMonth, debtAccounts) {
       const bookedInterest = isQuarterlyBookingMonth(month, acc.interest_booking_cycle)
         ? round2(accruedStart + monthlyInterest)
         : 0;
+
       const payable = round2(principalStart + bookedInterest);
       const payment = round2(Math.max(0, Math.min(available, payable)));
       const principalEnd = round2(Math.max(0, principalStart + bookedInterest - payment));
@@ -681,12 +712,13 @@ function buildDebtPlan(months, summariesByMonth, debtAccounts) {
       });
     }
 
-    reserve = round2(reserve + Math.max(0, available));
+    reserve = round2(Math.max(0, available));
 
     return {
       month,
       summary,
-      availableBeforeDebt: round2(summary.actualNet || 0),
+      reserveStart,
+      availableBeforeDebt: round2(reserveStart + baseNet),
       totalDebt: round2(perAccount.reduce((sum, x) => sum + x.totalEnd, 0)),
       totalPayment: round2(perAccount.reduce((sum, x) => sum + x.payment, 0)),
       reserve,
@@ -769,20 +801,24 @@ function emptyManualForm(defaultMonth) {
 
 function useWindowWidth() {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 390);
+
   useEffect(() => {
     const onResize = () => setWidth(window.innerWidth);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
   return width;
 }
 
 function useClock() {
   const [now, setNow] = useState(new Date());
+
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
+
   return now;
 }
 
@@ -839,7 +875,7 @@ function MetricCard({ styles, label, value, hint, color }) {
   );
 }
 
-function ComparisonBar({ styles, palette, label, planned, actual, mode = "normal" }) {
+function ComparisonBar({ styles, palette, label, planned, actual, mode = "normal", lang }) {
   const max = Math.max(planned, actual, 1);
   const plannedWidth = `${(Math.abs(planned) / max) * 100}%`;
   const actualWidth = `${(Math.abs(actual) / max) * 100}%`;
@@ -850,17 +886,21 @@ function ComparisonBar({ styles, palette, label, planned, actual, mode = "normal
     <div style={{ display: "grid", gap: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
         <strong>{label}</strong>
-        <span>{formatCurrency(planned)} / {formatCurrency(actual)}</span>
+        <span>
+          {formatCurrency(planned)} / {formatCurrency(actual)}
+        </span>
       </div>
+
       <div style={{ display: "grid", gap: 8 }}>
         <div>
-          <div style={{ fontSize: 12, color: palette.sub, marginBottom: 4 }}>Geplant</div>
+          <div style={{ fontSize: 12, color: palette.sub, marginBottom: 4 }}>{tr(lang, "planned")}</div>
           <div style={styles.chartTrack}>
             <div style={{ width: plannedWidth, height: 12, background: plannedColor }} />
           </div>
         </div>
+
         <div>
-          <div style={{ fontSize: 12, color: palette.sub, marginBottom: 4 }}>Tatsächlich</div>
+          <div style={{ fontSize: 12, color: palette.sub, marginBottom: 4 }}>{tr(lang, "actual")}</div>
           <div style={styles.chartTrack}>
             <div style={{ width: actualWidth, height: 12, background: actualColor }} />
           </div>
@@ -878,6 +918,7 @@ function StatusChip({ styles, palette, label, statusKey }) {
     today: { bg: `${palette.warning}22`, color: palette.warning },
     open: { bg: palette.accentSoft, color: palette.accent },
   };
+
   const c = colors[statusKey] || colors.open;
   return <div style={{ ...styles.chip, background: c.bg, color: c.color }}>{label}</div>;
 }
@@ -913,8 +954,11 @@ function BookingCard({
           <div style={styles.subtle}>
             {formatDate(item.planned_date, lang)} · {item.type === "income" ? tr(lang, "income") : tr(lang, "expense")}
           </div>
-          <div style={styles.subtle}>{item.category} · {item.account}</div>
+          <div style={styles.subtle}>
+            {item.category} · {item.account}
+          </div>
         </div>
+
         <StatusChip
           styles={styles}
           palette={palette}
@@ -926,9 +970,7 @@ function BookingCard({
       <div style={styles.grid2}>
         <div>
           <div style={styles.subtle}>{tr(lang, "planned")}</div>
-          <div style={{ fontWeight: 800, color: amountColor }}>
-            {formatSignedCurrency(signedPlanned, true)}
-          </div>
+          <div style={{ fontWeight: 800, color: amountColor }}>{formatSignedCurrency(signedPlanned, true)}</div>
         </div>
         <div>
           <div style={styles.subtle}>{tr(lang, "actual")}</div>
@@ -958,9 +1000,11 @@ function BookingCard({
               ? tr(lang, "saving")
               : tr(lang, "quickConfirm")}
           </button>
+
           <button style={styles.button} onClick={() => onEdit(item)} type="button">
             {tr(lang, "editAmount")}
           </button>
+
           <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => onSkip(item)} type="button">
             {tr(lang, "skip")}
           </button>
@@ -1036,12 +1080,14 @@ function ActionModal({
           onChange={(e) => setForm((prev) => ({ ...prev, actual_amount: e.target.value }))}
           placeholder={tr(lang, "actualAmount")}
         />
+
         <input
           style={styles.input}
           type="date"
           value={form.actual_date}
           onChange={(e) => setForm((prev) => ({ ...prev, actual_date: e.target.value }))}
         />
+
         <textarea
           style={styles.textarea}
           value={form.actual_note}
@@ -1069,6 +1115,7 @@ export default function App() {
 
   const [ui, setUi] = useState(() => {
     try {
+      if (typeof window === "undefined") return DEFAULT_UI;
       const raw = localStorage.getItem(UI_STORAGE_KEY);
       return raw ? { ...DEFAULT_UI, ...JSON.parse(raw) } : DEFAULT_UI;
     } catch {
@@ -1078,41 +1125,52 @@ export default function App() {
 
   const palette = palettes[ui.theme];
   const lang = ui.lang;
+  const notificationsSupported = typeof window !== "undefined" && "Notification" in window;
 
   useEffect(() => {
-    localStorage.setItem(UI_STORAGE_KEY, JSON.stringify(ui));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(UI_STORAGE_KEY, JSON.stringify(ui));
+    }
   }, [ui]);
 
   const [tab, setTab] = useState("today");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [session, setSession] = useState(null);
+
   const [profile, setProfile] = useState(null);
+  const [memberRole, setMemberRole] = useState(null);
   const [householdId, setHouseholdId] = useState(null);
   const [householdName, setHouseholdName] = useState("");
+
   const [rules, setRules] = useState([]);
   const [debtAccounts, setDebtAccounts] = useState([]);
   const [bookingActions, setBookingActions] = useState([]);
   const [manualTransactions, setManualTransactions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [savingActionKey, setSavingActionKey] = useState("");
   const [message, setMessage] = useState(tr(lang, "notLoggedIn"));
+
   const [selectedMonth, setSelectedMonth] = useState("2026-04");
   const [selectedRuleId, setSelectedRuleId] = useState("");
   const [ruleForm, setRuleForm] = useState(() => emptyRuleForm("2026-04"));
   const [manualForm, setManualForm] = useState(() => emptyManualForm("2026-04"));
+
   const [actionEditorItem, setActionEditorItem] = useState(null);
   const [actionEditorForm, setActionEditorForm] = useState({
     actual_amount: "",
     actual_date: "",
     actual_note: "",
   });
+
   const [notificationPermission, setNotificationPermission] = useState(
-    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
+    notificationsSupported ? Notification.permission : "unsupported"
   );
 
-  const isOwner = profile?.role === "owner";
+  const isOwner = memberRole === "owner";
   const todayStr = dateKeyFromDate(now);
+  const currentMonthKey = todayStr.slice(0, 7);
 
   const styles = useMemo(
     () => ({
@@ -1146,6 +1204,40 @@ export default function App() {
         position: "absolute",
         inset: 0,
         background: "linear-gradient(135deg, rgba(10,20,50,0.35) 0%, rgba(10,20,50,0.12) 100%)",
+      },
+      heroTopRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        alignItems: "start",
+      },
+      heroStats: {
+        marginTop: 16,
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: 8,
+      },
+      heroStatCard: {
+        background: "rgba(255,255,255,0.14)",
+        border: "1px solid rgba(255,255,255,0.18)",
+        borderRadius: 16,
+        padding: 10,
+        backdropFilter: "blur(6px)",
+      },
+      heroStatLabel: {
+        fontSize: 11,
+        color: "rgba(255,255,255,0.84)",
+      },
+      heroStatValue: {
+        marginTop: 4,
+        fontSize: isSmall ? 15 : 17,
+        fontWeight: 800,
+        color: "#fff",
+        lineHeight: 1.15,
+      },
+      heroMetaRow: {
+        display: "grid",
+        gap: 6,
       },
       controlsCard: {
         background: palette.panel,
@@ -1306,6 +1398,7 @@ export default function App() {
 
     function resetAppState() {
       setProfile(null);
+      setMemberRole(null);
       setHouseholdId(null);
       setHouseholdName("");
       setRules([]);
@@ -1320,6 +1413,7 @@ export default function App() {
 
     async function init() {
       setLoading(true);
+
       try {
         const {
           data: { session: currentSession },
@@ -1354,6 +1448,7 @@ export default function App() {
 
       window.setTimeout(async () => {
         if (!alive) return;
+
         if (newSession?.user) {
           await bootstrapUser(newSession.user.id);
         } else {
@@ -1389,7 +1484,7 @@ export default function App() {
   async function loadProfile(userId) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, email, role, display_name")
+      .select("id, email, display_name")
       .eq("id", userId)
       .single();
 
@@ -1417,6 +1512,7 @@ export default function App() {
 
     setHouseholdId(data.household_id);
     setHouseholdName(data.households?.name || "");
+    setMemberRole(data.role || null);
     return data;
   }
 
@@ -1500,6 +1596,7 @@ export default function App() {
     setMessage(tr(lang, "loginRunning"));
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
       setMessage("Login-Fehler: " + error.message);
       return;
@@ -1510,6 +1607,7 @@ export default function App() {
 
   async function handleLogout() {
     const { error } = await supabase.auth.signOut();
+
     if (error) {
       setMessage("Logout-Fehler: " + error.message);
       return;
@@ -1517,6 +1615,7 @@ export default function App() {
 
     setSession(null);
     setProfile(null);
+    setMemberRole(null);
     setHouseholdId(null);
     setHouseholdName("");
     setRules([]);
@@ -1530,6 +1629,7 @@ export default function App() {
 
   const monthBounds = useMemo(() => {
     if (!rules.length) return { start: "2026-04", end: "2027-03" };
+
     let start = rules[0].start_month || "2026-04";
     let end = rules[0].end_month || "2027-03";
 
@@ -1551,6 +1651,7 @@ export default function App() {
   }, [monthOptions, selectedMonth]);
 
   const plannedOccurrences = useMemo(() => buildPlannedOccurrences(rules, monthOptions), [rules, monthOptions]);
+
   const plannedWithActions = useMemo(
     () => mergePlannedWithActions(plannedOccurrences, bookingActions),
     [plannedOccurrences, bookingActions]
@@ -1572,14 +1673,40 @@ export default function App() {
       actualIncome: 0,
       actualExpense: 0,
       actualNet: 0,
-      categories: [],
       plannedItems: [],
       manualItems: [],
     };
 
+  const cumulativeActualTotals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+
+    for (const action of bookingActions) {
+      if (action.status !== "confirmed") continue;
+
+      const amount = Math.abs(Number(action.actual_amount ?? action.planned_amount ?? 0));
+      const type = action.actual_type || action.planned_type;
+
+      if (type === "income") income += amount;
+      else expense += amount;
+    }
+
+    for (const tx of manualTransactions) {
+      const amount = Math.abs(Number(tx.amount || 0));
+      if (tx.type === "income") income += amount;
+      else expense += amount;
+    }
+
+    return {
+      income: round2(income),
+      expense: round2(expense),
+      net: round2(income - expense),
+    };
+  }, [bookingActions, manualTransactions]);
+
   const debtPlan = useMemo(
-    () => buildDebtPlan(monthOptions, summariesByMonth, debtAccounts),
-    [monthOptions, summariesByMonth, debtAccounts]
+    () => buildDebtPlan(monthOptions, summariesByMonth, debtAccounts, currentMonthKey),
+    [monthOptions, summariesByMonth, debtAccounts, currentMonthKey]
   );
 
   const selectedDebtRow = useMemo(
@@ -1637,15 +1764,13 @@ export default function App() {
     });
   }, [selectedSummary]);
 
-  const incomeDisplayItems = useMemo(
-    () => displayItems.filter((item) => item.type === "income"),
-    [displayItems]
-  );
+  const incomeDisplayItems = useMemo(() => displayItems.filter((item) => item.type === "income"), [displayItems]);
+  const expenseDisplayItems = useMemo(() => displayItems.filter((item) => item.type === "expense"), [displayItems]);
 
-  const expenseDisplayItems = useMemo(
-    () => displayItems.filter((item) => item.type === "expense"),
-    [displayItems]
-  );
+  const headerInfoMessage = useMemo(() => {
+    const hiddenMessages = [tr(lang, "rulesLoaded"), tr(lang, "loggedIn")];
+    return hiddenMessages.includes(message) ? "" : message;
+  }, [message, lang]);
 
   async function persistBookingAction(item, actionType, override = {}) {
     if (!isOwner) {
@@ -1667,7 +1792,7 @@ export default function App() {
       planned_account: item.account,
       planned_note: item.note,
       status: actionType === "skip" ? "skipped" : "confirmed",
-      actual_date: actionType === "skip" ? item.planned_date : item.planned_date,
+      actual_date: item.planned_date,
       actual_amount: actionType === "skip" ? 0 : Number(item.planned_amount),
       actual_note: "",
       created_by: profile?.id || null,
@@ -1745,12 +1870,13 @@ export default function App() {
       updated_at: new Date().toISOString(),
     };
 
-    if (!payload.title || !Number.isFinite(payload.amount)) {
+    if (!payload.title || !Number.isFinite(payload.amount) || manualForm.amount === "") {
       setMessage("Titel oder Betrag ungültig.");
       return;
     }
 
     const { error } = await supabase.from("manual_transactions").insert(payload);
+
     if (error) {
       setMessage("Fehler beim Speichern: " + error.message);
       return;
@@ -1782,7 +1908,8 @@ export default function App() {
     }
 
     const payload = formToRulePayload(ruleForm, householdId);
-    if (!payload.title || !Number.isFinite(payload.amount)) {
+
+    if (!payload.title || !Number.isFinite(payload.amount) || ruleForm.amount === "") {
       setMessage("Titel oder Betrag ungültig.");
       return;
     }
@@ -1810,6 +1937,7 @@ export default function App() {
     }
 
     const { error } = await supabase.from("rules").delete().eq("id", ruleForm.id);
+
     if (error) {
       setMessage("Fehler beim Löschen: " + error.message);
       return;
@@ -1829,7 +1957,7 @@ export default function App() {
   }
 
   async function handleRequestNotifications() {
-    if (!("Notification" in window)) {
+    if (!notificationsSupported) {
       setNotificationPermission("unsupported");
       return;
     }
@@ -1871,6 +1999,7 @@ export default function App() {
         ...item,
         source: "rule",
       }));
+
       const manual = summary.manualItems.map((item) => ({
         source: "manual",
         type: item.type,
@@ -1929,6 +2058,7 @@ export default function App() {
             <div style={styles.heroCard}>
               {ui.headerImage ? <img src={ui.headerImage} alt="header" style={styles.heroImage} /> : null}
               {ui.headerImage ? <div style={styles.heroOverlay} /> : null}
+
               <div style={{ position: "relative", zIndex: 1 }}>
                 <h1 style={styles.title}>{heroTitle}</h1>
                 <div style={styles.subtitle}>{heroSubtitle}</div>
@@ -1944,6 +2074,7 @@ export default function App() {
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>{tr(lang, "login")}</h2>
             <div style={styles.cardSubtitle}>{message}</div>
+
             <form onSubmit={handleLogin} style={{ display: "grid", gap: 12 }}>
               <input
                 style={styles.input}
@@ -1980,23 +2111,29 @@ export default function App() {
             {ui.headerImage ? <div style={styles.heroOverlay} /> : null}
 
             <div style={{ position: "relative", zIndex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-                <div>
+              <div style={styles.heroTopRow}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <h1 style={styles.title}>{heroTitle}</h1>
                   <div style={styles.subtitle}>{heroSubtitle}</div>
+
+                  <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.92)" }}>
+                    {tr(lang, "selectedMonthLabel")}: {formatMonth(selectedMonth, lang)}
+                  </div>
+
                   {ui.showClock ? (
-                    <div style={{ marginTop: 12, fontSize: 13, fontWeight: 700 }}>
+                    <div style={{ marginTop: 6, fontSize: 13, fontWeight: 700 }}>
                       {tr(lang, "currentTime")}: {formatClock(now, lang)}
                     </div>
                   ) : null}
                 </div>
 
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                   {ui.profileMe ? (
                     <img src={ui.profileMe} alt="me" style={styles.avatar} />
                   ) : (
                     <div style={styles.avatarFallback}>T</div>
                   )}
+
                   {ui.profileWife ? (
                     <img src={ui.profileWife} alt="wife" style={styles.avatar} />
                   ) : (
@@ -2004,11 +2141,28 @@ export default function App() {
                   )}
                 </div>
               </div>
+
+              <div style={styles.heroStats}>
+                <div style={styles.heroStatCard}>
+                  <div style={styles.heroStatLabel}>{tr(lang, "totalIncomeAll")}</div>
+                  <div style={styles.heroStatValue}>{formatSignedCurrency(cumulativeActualTotals.income, true)}</div>
+                </div>
+
+                <div style={styles.heroStatCard}>
+                  <div style={styles.heroStatLabel}>{tr(lang, "totalExpenseAll")}</div>
+                  <div style={styles.heroStatValue}>{formatSignedCurrency(-cumulativeActualTotals.expense, true)}</div>
+                </div>
+
+                <div style={styles.heroStatCard}>
+                  <div style={styles.heroStatLabel}>{tr(lang, "currentBalanceAll")}</div>
+                  <div style={styles.heroStatValue}>{formatSignedCurrency(cumulativeActualTotals.net, true)}</div>
+                </div>
+              </div>
             </div>
           </div>
 
           <div style={styles.controlsCard}>
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={styles.heroMetaRow}>
               <select
                 style={styles.input}
                 value={selectedMonth}
@@ -2025,9 +2179,10 @@ export default function App() {
               </select>
 
               <div style={styles.subtle}>
-                {householdName || "-"} · {tr(lang, "role")}: {roleLabel(lang, profile?.role)}
+                {householdName || "-"} · {tr(lang, "role")}: {roleLabel(lang, memberRole)}
               </div>
-              <div style={styles.subtle}>{message}</div>
+
+              {headerInfoMessage ? <div style={styles.subtle}>{headerInfoMessage}</div> : null}
             </div>
           </div>
         </div>
@@ -2199,21 +2354,26 @@ export default function App() {
                 <ComparisonBar
                   styles={styles}
                   palette={palette}
+                  lang={lang}
                   label={tr(lang, "income")}
                   planned={selectedSummary.plannedIncome}
                   actual={selectedSummary.actualIncome}
                 />
+
                 <ComparisonBar
                   styles={styles}
                   palette={palette}
+                  lang={lang}
                   label={tr(lang, "expense")}
                   planned={selectedSummary.plannedExpense}
                   actual={selectedSummary.actualExpense}
                   mode="expense"
                 />
+
                 <ComparisonBar
                   styles={styles}
                   palette={palette}
+                  lang={lang}
                   label={tr(lang, "monthlyNet")}
                   planned={Math.abs(selectedSummary.plannedNet)}
                   actual={Math.abs(selectedSummary.actualNet)}
@@ -2222,7 +2382,11 @@ export default function App() {
               </div>
             </Section>
 
-            <Section styles={styles} title={tr(lang, "incomeList")} subtitle={`${tr(lang, "plusGreenHint")} · ${formatMonth(selectedMonth, lang)}`}>
+            <Section
+              styles={styles}
+              title={tr(lang, "incomeList")}
+              subtitle={`${tr(lang, "plusGreenHint")} · ${formatMonth(selectedMonth, lang)}`}
+            >
               <div style={{ display: "grid", gap: 10 }}>
                 {incomeDisplayItems.length ? (
                   incomeDisplayItems.map((item) => (
@@ -2246,7 +2410,11 @@ export default function App() {
               </div>
             </Section>
 
-            <Section styles={styles} title={tr(lang, "expensesList")} subtitle={`${tr(lang, "minusRedHint")} · ${formatMonth(selectedMonth, lang)}`}>
+            <Section
+              styles={styles}
+              title={tr(lang, "expensesList")}
+              subtitle={`${tr(lang, "minusRedHint")} · ${formatMonth(selectedMonth, lang)}`}
+            >
               <div style={{ display: "grid", gap: 10 }}>
                 {expenseDisplayItems.length ? (
                   expenseDisplayItems.map((item) => (
@@ -2269,64 +2437,16 @@ export default function App() {
                 )}
               </div>
             </Section>
-
-            <Section styles={styles} title={tr(lang, "categoriesOverview")} subtitle={formatMonth(selectedMonth, lang)}>
-              {selectedSummary.categories.length === 0 ? (
-                <div style={styles.subtle}>{tr(lang, "noData")}</div>
-              ) : (
-                <div style={{ display: "grid", gap: 14 }}>
-                  {selectedSummary.categories.map((cat) => {
-                    const max = Math.max(...selectedSummary.categories.map((x) => x.total), 1);
-                    return (
-                      <div key={cat.label} style={{ display: "grid", gap: 8 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                          <strong>{cat.label}</strong>
-                          <span style={styles.subtle}>{formatSignedCurrency(cat.net, true)}</span>
-                        </div>
-
-                        <div>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: palette.sub, marginBottom: 4 }}>
-                            <span>{tr(lang, "income")}</span>
-                            <span style={{ color: palette.success }}>{formatSignedCurrency(cat.income, true)}</span>
-                          </div>
-                          <div style={styles.chartTrack}>
-                            <div
-                              style={{
-                                width: `${(cat.income / max) * 100}%`,
-                                height: 12,
-                                background: palette.success,
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: palette.sub, marginBottom: 4 }}>
-                            <span>{tr(lang, "expense")}</span>
-                            <span style={{ color: palette.danger }}>{formatSignedCurrency(-cat.expense, true)}</span>
-                          </div>
-                          <div style={styles.chartTrack}>
-                            <div
-                              style={{
-                                width: `${(cat.expense / max) * 100}%`,
-                                height: 12,
-                                background: palette.danger,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Section>
           </div>
         )}
 
         {tab === "book" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <Section styles={styles} title={tr(lang, "bookNow")} subtitle={isOwner ? tr(lang, "mobileHint") : tr(lang, "onlyOwner")}>
+            <Section
+              styles={styles}
+              title={tr(lang, "bookNow")}
+              subtitle={isOwner ? tr(lang, "mobileHint") : tr(lang, "onlyOwner")}
+            >
               <form onSubmit={handleSaveManual} style={{ display: "grid", gap: 10 }}>
                 <input
                   style={styles.input}
@@ -2335,6 +2455,7 @@ export default function App() {
                   onChange={(e) => setManualForm((prev) => ({ ...prev, booking_date: e.target.value }))}
                   disabled={!isOwner}
                 />
+
                 <input
                   style={styles.input}
                   value={manualForm.title}
@@ -2343,6 +2464,7 @@ export default function App() {
                   required
                   disabled={!isOwner}
                 />
+
                 <div style={styles.grid2}>
                   <select
                     style={styles.input}
@@ -2353,6 +2475,7 @@ export default function App() {
                     <option value="expense">{tr(lang, "expense")}</option>
                     <option value="income">{tr(lang, "income")}</option>
                   </select>
+
                   <input
                     style={styles.input}
                     type="number"
@@ -2364,6 +2487,7 @@ export default function App() {
                     disabled={!isOwner}
                   />
                 </div>
+
                 <div style={styles.grid2}>
                   <input
                     style={styles.input}
@@ -2380,6 +2504,7 @@ export default function App() {
                     disabled={!isOwner}
                   />
                 </div>
+
                 <textarea
                   style={styles.textarea}
                   value={manualForm.note}
@@ -2387,6 +2512,7 @@ export default function App() {
                   placeholder={tr(lang, "note")}
                   disabled={!isOwner}
                 />
+
                 <button type="submit" style={{ ...styles.button, ...styles.buttonPrimary }} disabled={!isOwner}>
                   {tr(lang, "addBooking")}
                 </button>
@@ -2403,25 +2529,29 @@ export default function App() {
                   selectedDebtRow.perAccount.map((acc) => (
                     <div key={acc.id} style={styles.bookingCard}>
                       <div style={{ fontWeight: 800 }}>{acc.name}</div>
+
                       <div style={styles.grid2}>
                         <div>
-                          <div style={styles.subtle}>Start</div>
+                          <div style={styles.subtle}>{tr(lang, "start")}</div>
                           <div style={{ fontWeight: 800, color: palette.danger }}>
                             {formatSignedCurrency(-(acc.principalStart + acc.accruedStart), true)}
                           </div>
                         </div>
+
                         <div>
                           <div style={styles.subtle}>{tr(lang, "paymentToDebt")}</div>
                           <div style={{ fontWeight: 800, color: palette.success }}>
                             {formatSignedCurrency(acc.payment, true)}
                           </div>
                         </div>
+
                         <div>
-                          <div style={styles.subtle}>Zinsen</div>
+                          <div style={styles.subtle}>{tr(lang, "interest")}</div>
                           <div style={{ fontWeight: 800, color: palette.danger }}>
                             {formatSignedCurrency(-acc.bookedInterest, true)}
                           </div>
                         </div>
+
                         <div>
                           <div style={styles.subtle}>Ende</div>
                           <div style={{ fontWeight: 800, color: palette.danger }}>
@@ -2451,22 +2581,30 @@ export default function App() {
                     <div style={styles.grid2}>
                       <div>
                         <div style={styles.subtle}>{tr(lang, "availableBeforeDebt")}</div>
-                        <div style={{ fontWeight: 800, color: row.availableBeforeDebt >= 0 ? palette.success : palette.danger }}>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            color: row.availableBeforeDebt >= 0 ? palette.success : palette.danger,
+                          }}
+                        >
                           {formatSignedCurrency(row.availableBeforeDebt, true)}
                         </div>
                       </div>
+
                       <div>
                         <div style={styles.subtle}>{tr(lang, "paymentToDebt")}</div>
                         <div style={{ fontWeight: 800, color: palette.success }}>
                           {formatSignedCurrency(row.totalPayment, true)}
                         </div>
                       </div>
+
                       <div>
                         <div style={styles.subtle}>{tr(lang, "reserveEnd")}</div>
                         <div style={{ fontWeight: 800, color: palette.success }}>
                           {formatSignedCurrency(row.reserve, true)}
                         </div>
                       </div>
+
                       <div>
                         <div style={styles.subtle}>{tr(lang, "totalDebt")}</div>
                         <div style={{ fontWeight: 800, color: palette.danger }}>
@@ -2504,6 +2642,7 @@ export default function App() {
                     disabled={!isOwner}
                     required
                   />
+
                   <div style={styles.grid2}>
                     <select
                       style={styles.input}
@@ -2514,6 +2653,7 @@ export default function App() {
                       <option value="income">{tr(lang, "income")}</option>
                       <option value="expense">{tr(lang, "expense")}</option>
                     </select>
+
                     <input
                       style={styles.input}
                       type="number"
@@ -2626,6 +2766,7 @@ export default function App() {
                         {tr(lang, "save")}
                       </button>
                     ) : null}
+
                     {isOwner ? (
                       <button
                         type="button"
@@ -2638,6 +2779,7 @@ export default function App() {
                         {tr(lang, "newRule")}
                       </button>
                     ) : null}
+
                     {isOwner && ruleForm.id ? (
                       <button type="button" style={{ ...styles.button, ...styles.buttonDanger }} onClick={handleDeleteRule}>
                         {tr(lang, "deleteRule")}
@@ -2664,6 +2806,7 @@ export default function App() {
                     >
                       Deutsch
                     </button>
+
                     <button
                       type="button"
                       style={ui.lang === "ru" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
@@ -2684,6 +2827,7 @@ export default function App() {
                     >
                       {tr(lang, "light")}
                     </button>
+
                     <button
                       type="button"
                       style={ui.theme === "dark" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
@@ -2704,12 +2848,14 @@ export default function App() {
                   onChange={(e) => setUi((prev) => ({ ...prev, headerTitle: e.target.value }))}
                   placeholder={tr(lang, "headerTitle")}
                 />
+
                 <textarea
                   style={styles.textarea}
                   value={ui.headerSubtitle}
                   onChange={(e) => setUi((prev) => ({ ...prev, headerSubtitle: e.target.value }))}
                   placeholder={tr(lang, "headerSubtitle")}
                 />
+
                 <div style={styles.row}>
                   <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
                     {tr(lang, "uploadImage")}
@@ -2720,12 +2866,14 @@ export default function App() {
                       onChange={(e) => handleImageUpload("headerImage", e)}
                     />
                   </label>
+
                   {ui.headerImage ? (
                     <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, headerImage: "" }))}>
                       {tr(lang, "removeImage")}
                     </button>
                   ) : null}
                 </div>
+
                 <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>
                   <input
                     type="checkbox"
@@ -2751,11 +2899,13 @@ export default function App() {
                       <div style={styles.subtle}>{tr(lang, "uploadImage")}</div>
                     </div>
                   </div>
+
                   <div style={styles.row}>
                     <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
                       {tr(lang, "uploadImage")}
                       <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleImageUpload("profileMe", e)} />
                     </label>
+
                     {ui.profileMe ? (
                       <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileMe: "" }))}>
                         {tr(lang, "removeImage")}
@@ -2776,11 +2926,13 @@ export default function App() {
                       <div style={styles.subtle}>{tr(lang, "uploadImage")}</div>
                     </div>
                   </div>
+
                   <div style={styles.row}>
                     <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
                       {tr(lang, "uploadImage")}
                       <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleImageUpload("profileWife", e)} />
                     </label>
+
                     {ui.profileWife ? (
                       <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileWife: "" }))}>
                         {tr(lang, "removeImage")}
@@ -2801,14 +2953,15 @@ export default function App() {
                       ? tr(lang, "denied")
                       : notificationPermission === "default"
                         ? tr(lang, "defaultPermission")
-                        : "nicht unterstützt"}
+                        : tr(lang, "unsupported")}
                 </div>
-                {"Notification" in window ? (
+
+                {notificationsSupported ? (
                   <button type="button" style={styles.button} onClick={handleRequestNotifications}>
                     {tr(lang, "enableNotifications")}
                   </button>
                 ) : (
-                  <div style={styles.subtle}>Dieser Browser unterstützt Notifications nicht.</div>
+                  <div style={styles.subtle}>{tr(lang, "browserNotSupported")}</div>
                 )}
               </div>
             </Section>
@@ -2819,7 +2972,10 @@ export default function App() {
                   {tr(lang, "user")}: {session.user.email}
                   <br />
                   {tr(lang, "household")}: {householdName || householdId || "-"}
+                  <br />
+                  {tr(lang, "role")}: {roleLabel(lang, memberRole)}
                 </div>
+
                 <button type="button" style={styles.button} onClick={handleLogout}>
                   {tr(lang, "logout")}
                 </button>
