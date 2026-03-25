@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 
-const UI_STORAGE_KEY = "cashflow-ui-v5";
+const UI_STORAGE_KEY = "cashflow-ui-v6";
 
 const texts = {
   de: {
@@ -42,8 +42,10 @@ const texts = {
     saving: "Speichere ...",
     cancel: "Abbrechen",
     confirm: "Bestätigen",
-    skip: "Skip",
+    skip: "Überspringen",
     editAmount: "Anpassen",
+    undoConfirm: "Zurücknehmen",
+    reopen: "Wieder öffnen",
     open: "geplant",
     confirmed: "bestätigt",
     skipped: "übersprungen",
@@ -67,6 +69,8 @@ const texts = {
     ruleDeleted: "Regel gelöscht.",
     bookingSaved: "Buchung gespeichert.",
     bookingActionSaved: "Buchung aktualisiert.",
+    bookingUndone: "Bestätigung zurückgenommen.",
+    bookingReopened: "Buchung wieder geöffnet.",
     rulesLoaded: "Daten geladen.",
     onlyOwner: "Nur der Inhaber darf Änderungen machen.",
     mobileHint: "Für Handy optimiert: Karten, große Buttons, kurze Wege.",
@@ -91,8 +95,6 @@ const texts = {
     customMonths: "Bestimmte Monate",
     dayOfMonth: "Tag im Monat",
     weekday: "Wochentag",
-    startMonth: "Startmonat",
-    endMonth: "Endmonat",
     customMonthsHint: "z. B. 2026-06, 2026-12",
     monday: "Montag",
     tuesday: "Dienstag",
@@ -105,7 +107,6 @@ const texts = {
     debtPlan: "Tilgungsplan",
     noData: "Keine Daten vorhanden.",
     user: "Benutzer",
-    createdAt: "Erfasst am",
     planned: "Geplant",
     actual: "Tatsächlich",
     planVsActual: "Plan vs. Tatsächlich",
@@ -117,7 +118,6 @@ const texts = {
     actualNet: "Tatsächlicher Saldo",
     expensesList: "Ausgaben",
     incomeList: "Einnahmen",
-    allBookings: "Alle Buchungen",
     actionEditor: "Buchung anpassen",
     quickConfirm: "Schnell bestätigen",
     headerSettings: "Header anpassen",
@@ -126,7 +126,6 @@ const texts = {
     headerImage: "Header-Bild",
     currentTime: "Aktuelle Uhrzeit",
     showClock: "Uhrzeit anzeigen",
-    exportCsv: "CSV Export",
     exportMonthCsv: "Monat als CSV exportieren",
     exportAllCsv: "Alles als CSV exportieren",
     notifications: "Notifications",
@@ -139,164 +138,16 @@ const texts = {
     defaultPermission: "noch nicht entschieden",
     unsupported: "nicht unterstützt",
     browserNotSupported: "Dieser Browser unterstützt Notifications nicht.",
-    planItems: "Plan-Buchungen",
-    manualItems: "Manuelle Buchungen",
     plusGreenHint: "Plus = positiv",
     minusRedHint: "Minus = Belastung",
-    totalIncomeAll: "Einnahmen gesamt",
-    totalExpenseAll: "Ausgaben gesamt",
-    currentBalanceAll: "Saldo gesamt",
-    sinceStart: "Kumuliert",
+    totalIncomeAll: "Einnahmen bis heute",
+    totalExpenseAll: "Ausgaben bis heute",
+    currentBalanceAll: "Saldo bis heute",
     selectedMonthLabel: "Aktueller Monat",
+    tillToday: "Kumuliert bis heute",
     start: "Start",
     interest: "Zinsen",
-  },
-  ru: {
-    appTitle: "Cashflow-App",
-    appSubtitle: "Сначала для телефона: долги, ежедневные проводки и месячный план.",
-    login: "Войти",
-    logout: "Выйти",
-    email: "Эл. почта",
-    password: "Пароль",
-    loading: "Загрузка ...",
-    notLoggedIn: "Не выполнен вход",
-    loginRunning: "Выполняется вход ...",
-    loggedIn: "Вход выполнен",
-    today: "Сегодня",
-    plan: "План",
-    book: "Проводка",
-    debt: "Долги",
-    rules: "Правила",
-    settings: "Настройки",
-    month: "Месяц",
-    role: "Роль",
-    owner: "Владелец",
-    viewer: "Только просмотр",
-    unknown: "неизвестно",
-    household: "Домохозяйство",
-    status: "Статус",
-    amount: "Сумма",
-    actualAmount: "Фактическая сумма",
-    actualDate: "Фактическая дата",
-    title: "Название",
-    type: "Тип",
-    income: "Доход",
-    expense: "Расход",
-    category: "Категория",
-    account: "Счёт",
-    note: "Заметка",
-    save: "Сохранить",
-    saving: "Сохраняю ...",
-    cancel: "Отмена",
-    confirm: "Подтвердить",
-    skip: "Пропустить",
-    editAmount: "Изменить",
-    open: "запланировано",
-    confirmed: "подтверждено",
-    skipped: "пропущено",
-    overdue: "просрочено",
-    upcoming: "скоро",
-    todayDue: "на сегодня",
-    next7Days: "Следующие 7 дней",
-    overdueItems: "Просрочено",
-    noTasks: "Нет открытых операций в этом разделе.",
-    monthlyIncome: "Доходы за месяц",
-    monthlyExpense: "Расходы за месяц",
-    monthlyNet: "Баланс за месяц",
-    reserveEnd: "Резерв на конец месяца",
-    totalDebt: "Остаток долга на конец месяца",
-    availableBeforeDebt: "Доступно до погашения",
-    paymentToDebt: "Погашение всего",
-    planOverview: "План месяца",
-    bookNow: "Ручная проводка",
-    addBooking: "Добавить проводку",
-    ruleSaved: "Правило сохранено.",
-    ruleDeleted: "Правило удалено.",
-    bookingSaved: "Проводка сохранена.",
-    bookingActionSaved: "Операция обновлена.",
-    rulesLoaded: "Данные загружены.",
-    onlyOwner: "Только владелец может вносить изменения.",
-    mobileHint: "Оптимизировано для телефона: карточки, большие кнопки, короткие действия.",
-    settingsTitle: "Вид и язык",
-    language: "Язык",
-    theme: "Тема",
-    light: "День",
-    dark: "Ночь",
-    familyPhotos: "Фотографии",
-    me: "Я",
-    wife: "Моя жена",
-    uploadImage: "Загрузить фото",
-    removeImage: "Удалить фото",
-    chooseRule: "Пожалуйста, выберите правило",
-    newRule: "Новое правило",
-    editRule: "Редактировать правило",
-    deleteRule: "Удалить",
-    frequency: "Ритм",
-    monthly: "Ежемесячно",
-    weekly: "Еженедельно",
-    everyOtherMonth: "Каждые 2 месяца",
-    customMonths: "Определённые месяцы",
-    dayOfMonth: "День месяца",
-    weekday: "День недели",
-    startMonth: "Начальный месяц",
-    endMonth: "Конечный месяц",
-    customMonthsHint: "например 2026-06, 2026-12",
-    monday: "Понедельник",
-    tuesday: "Вторник",
-    wednesday: "Среда",
-    thursday: "Четверг",
-    friday: "Пятница",
-    saturday: "Суббота",
-    sunday: "Воскресенье",
-    debtAccounts: "Долговые счета",
-    debtPlan: "План погашения",
-    noData: "Нет данных.",
-    user: "Пользователь",
-    createdAt: "Создано",
-    planned: "План",
-    actual: "Факт",
-    planVsActual: "План vs. Факт",
-    plannedIncome: "Плановый доход",
-    plannedExpense: "Плановый расход",
-    plannedNet: "Плановый баланс",
-    actualIncome: "Фактический доход",
-    actualExpense: "Фактический расход",
-    actualNet: "Фактический баланс",
-    expensesList: "Расходы",
-    incomeList: "Доходы",
-    allBookings: "Все проводки",
-    actionEditor: "Изменить проводку",
-    quickConfirm: "Быстро подтвердить",
-    headerSettings: "Настроить header",
-    headerTitle: "Заголовок",
-    headerSubtitle: "Подзаголовок",
-    headerImage: "Картинка header",
-    currentTime: "Текущее время",
-    showClock: "Показывать время",
-    exportCsv: "Экспорт CSV",
-    exportMonthCsv: "Экспорт месяца в CSV",
-    exportAllCsv: "Экспорт всего в CSV",
-    notifications: "Уведомления",
-    notificationsHint:
-      "Подготовка разрешения браузера. Для настоящих push позже понадобится service worker.",
-    enableNotifications: "Запросить разрешение",
-    notificationStatus: "Статус",
-    allowed: "разрешено",
-    denied: "отклонено",
-    defaultPermission: "ещё не выбрано",
-    unsupported: "не поддерживается",
-    browserNotSupported: "Этот браузер не поддерживает уведомления.",
-    planItems: "Плановые проводки",
-    manualItems: "Ручные проводки",
-    plusGreenHint: "Плюс = положительно",
-    minusRedHint: "Минус = нагрузка",
-    totalIncomeAll: "Доходы всего",
-    totalExpenseAll: "Расходы всего",
-    currentBalanceAll: "Общий баланс",
-    sinceStart: "Накопительно",
-    selectedMonthLabel: "Текущий месяц",
-    start: "Старт",
-    interest: "Проценты",
+    end: "Ende",
   },
 };
 
@@ -348,20 +199,6 @@ const monthNames = {
     "November",
     "Dezember",
   ],
-  ru: [
-    "Январь",
-    "Февраль",
-    "Март",
-    "Апрель",
-    "Май",
-    "Июнь",
-    "Июль",
-    "Август",
-    "Сентябрь",
-    "Октябрь",
-    "Ноябрь",
-    "Декабрь",
-  ],
 };
 
 const DEFAULT_UI = {
@@ -405,6 +242,11 @@ function signedAmountForType(value, type) {
   return type === "expense" ? -n : n;
 }
 
+function amountSignedFromType(type, value) {
+  const n = Math.abs(Number(value || 0));
+  return type === "expense" ? -n : n;
+}
+
 function formatMonth(month, lang) {
   const [y, m] = month.split("-").map(Number);
   return `${monthNames[lang]?.[m - 1] || monthNames.de[m - 1]} ${y}`;
@@ -413,7 +255,7 @@ function formatMonth(month, lang) {
 function formatDate(value, lang) {
   if (!value) return "-";
   const d = new Date(`${value}T00:00:00`);
-  return new Intl.DateTimeFormat(lang === "ru" ? "ru-RU" : "de-AT", {
+  return new Intl.DateTimeFormat(lang === "de" ? "de-AT" : "de-AT", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -421,7 +263,7 @@ function formatDate(value, lang) {
 }
 
 function formatClock(value, lang) {
-  return new Intl.DateTimeFormat(lang === "ru" ? "ru-RU" : "de-AT", {
+  return new Intl.DateTimeFormat(lang === "de" ? "de-AT" : "de-AT", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -601,9 +443,9 @@ function mergePlannedWithActions(planned, actions) {
   });
 }
 
-function summarizeMonth(selectedMonth, plannedWithActions, manualTransactions) {
+function summarizeMonth(selectedMonth, plannedWithActions, journalEntries) {
   const monthPlanned = plannedWithActions.filter((x) => x.month === selectedMonth);
-  const monthManual = manualTransactions.filter((x) => x.booking_date?.slice(0, 7) === selectedMonth);
+  const monthJournal = journalEntries.filter((x) => x.month_key === selectedMonth && !x.is_void);
 
   let plannedIncome = 0;
   let plannedExpense = 0;
@@ -612,22 +454,20 @@ function summarizeMonth(selectedMonth, plannedWithActions, manualTransactions) {
 
   for (const item of monthPlanned) {
     const plannedAmount = Math.abs(Number(item.planned_amount || 0));
-    const actualAmount = Math.abs(Number(item.actual_amount ?? item.planned_amount ?? 0));
-
     if (item.type === "income") {
       if (item.status !== "skipped") plannedIncome += plannedAmount;
-      if (item.status === "confirmed") actualIncome += actualAmount;
     } else {
       if (item.status !== "skipped") plannedExpense += plannedAmount;
-      if (item.status === "confirmed") actualExpense += actualAmount;
     }
   }
 
-  for (const tx of monthManual) {
-    const amount = Math.abs(Number(tx.amount || 0));
-    if (tx.type === "income") actualIncome += amount;
-    else actualExpense += amount;
+  for (const j of monthJournal) {
+    const signed = Number(j.amount_signed || 0);
+    if (signed >= 0) actualIncome += Math.abs(signed);
+    else actualExpense += Math.abs(signed);
   }
+
+  const manualItems = monthJournal.filter((x) => x.source_kind === "manual_transaction");
 
   return {
     plannedIncome,
@@ -637,7 +477,8 @@ function summarizeMonth(selectedMonth, plannedWithActions, manualTransactions) {
     actualExpense,
     actualNet: actualIncome - actualExpense,
     plannedItems: monthPlanned,
-    manualItems: monthManual,
+    manualItems,
+    journalItems: monthJournal,
   };
 }
 
@@ -875,7 +716,7 @@ function MetricCard({ styles, label, value, hint, color }) {
   );
 }
 
-function ComparisonBar({ styles, palette, label, planned, actual, mode = "normal", lang }) {
+function ComparisonBar({ styles, palette, label, planned, actual, lang, mode = "normal" }) {
   const max = Math.max(planned, actual, 1);
   const plannedWidth = `${(Math.abs(planned) / max) * 100}%`;
   const actualWidth = `${(Math.abs(actual) / max) * 100}%`;
@@ -933,6 +774,8 @@ function BookingCard({
   onConfirm,
   onEdit,
   onSkip,
+  onUndoConfirm,
+  onReopen,
   savingActionKey,
 }) {
   const visualStatus = inferOccurrenceStatus(item, todayStr);
@@ -988,26 +831,45 @@ function BookingCard({
         </div>
       ) : null}
 
-      {isOwner && item.source !== "manual" && item.status !== "confirmed" && item.status !== "skipped" ? (
+      {isOwner && item.source !== "manual" ? (
         <div style={styles.row}>
-          <button
-            style={{ ...styles.button, ...styles.buttonPrimary }}
-            onClick={() => onConfirm(item)}
-            disabled={Boolean(savingActionKey)}
-            type="button"
-          >
-            {savingActionKey === `${item.rule_id}_${item.planned_date}_confirm`
-              ? tr(lang, "saving")
-              : tr(lang, "quickConfirm")}
-          </button>
+          {item.status === "open" ? (
+            <>
+              <button
+                style={{ ...styles.button, ...styles.buttonPrimary }}
+                onClick={() => onConfirm(item)}
+                disabled={Boolean(savingActionKey)}
+                type="button"
+              >
+                {savingActionKey === `${item.rule_id}_${item.planned_date}_confirm`
+                  ? tr(lang, "saving")
+                  : tr(lang, "quickConfirm")}
+              </button>
+              <button style={styles.button} onClick={() => onEdit(item)} type="button">
+                {tr(lang, "editAmount")}
+              </button>
+              <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => onSkip(item)} type="button">
+                {tr(lang, "skip")}
+              </button>
+            </>
+          ) : null}
 
-          <button style={styles.button} onClick={() => onEdit(item)} type="button">
-            {tr(lang, "editAmount")}
-          </button>
+          {item.status === "confirmed" ? (
+            <>
+              <button style={styles.button} onClick={() => onEdit(item)} type="button">
+                {tr(lang, "editAmount")}
+              </button>
+              <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => onUndoConfirm(item)} type="button">
+                {tr(lang, "undoConfirm")}
+              </button>
+            </>
+          ) : null}
 
-          <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => onSkip(item)} type="button">
-            {tr(lang, "skip")}
-          </button>
+          {item.status === "skipped" ? (
+            <button style={styles.button} onClick={() => onReopen(item)} type="button">
+              {tr(lang, "reopen")}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -1066,6 +928,7 @@ function ActionModal({
               {formatSignedCurrency(signedAmountForType(item.planned_amount, item.type), true)}
             </div>
           </div>
+
           <div>
             <div style={styles.subtle}>{tr(lang, "actualDate")}</div>
             <div style={{ fontWeight: 800 }}>{formatDate(form.actual_date, lang)}</div>
@@ -1125,7 +988,6 @@ export default function App() {
 
   const palette = palettes[ui.theme];
   const lang = ui.lang;
-  const notificationsSupported = typeof window !== "undefined" && "Notification" in window;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -1137,7 +999,6 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [session, setSession] = useState(null);
-
   const [profile, setProfile] = useState(null);
   const [memberRole, setMemberRole] = useState(null);
   const [householdId, setHouseholdId] = useState(null);
@@ -1147,6 +1008,7 @@ export default function App() {
   const [debtAccounts, setDebtAccounts] = useState([]);
   const [bookingActions, setBookingActions] = useState([]);
   const [manualTransactions, setManualTransactions] = useState([]);
+  const [journalEntries, setJournalEntries] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [savingActionKey, setSavingActionKey] = useState("");
@@ -1165,7 +1027,7 @@ export default function App() {
   });
 
   const [notificationPermission, setNotificationPermission] = useState(
-    notificationsSupported ? Notification.permission : "unsupported"
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
   );
 
   const isOwner = memberRole === "owner";
@@ -1303,11 +1165,6 @@ export default function App() {
         color: palette.panel,
         border: `1px solid ${palette.text}`,
       },
-      buttonAccent: {
-        background: palette.accent,
-        color: "#fff",
-        border: `1px solid ${palette.accent}`,
-      },
       buttonDanger: {
         background: palette.danger,
         color: "#fff",
@@ -1405,6 +1262,7 @@ export default function App() {
       setDebtAccounts([]);
       setBookingActions([]);
       setManualTransactions([]);
+      setJournalEntries([]);
       setSelectedRuleId("");
       setRuleForm(emptyRuleForm("2026-04"));
       setManualForm(emptyManualForm("2026-04"));
@@ -1413,7 +1271,6 @@ export default function App() {
 
     async function init() {
       setLoading(true);
-
       try {
         const {
           data: { session: currentSession },
@@ -1448,7 +1305,6 @@ export default function App() {
 
       window.setTimeout(async () => {
         if (!alive) return;
-
         if (newSession?.user) {
           await bootstrapUser(newSession.user.id);
         } else {
@@ -1461,7 +1317,6 @@ export default function App() {
       alive = false;
       subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function bootstrapUser(userId) {
@@ -1476,6 +1331,7 @@ export default function App() {
       loadDebtAccounts(household.household_id),
       loadBookingActions(household.household_id),
       loadManualTransactions(household.household_id),
+      loadJournalEntries(household.household_id),
     ]);
 
     setMessage(tr(lang, "rulesLoaded"));
@@ -1591,12 +1447,27 @@ export default function App() {
     setManualTransactions(data || []);
   }
 
+  async function loadJournalEntries(hId) {
+    const { data, error } = await supabase
+      .from("booking_journal")
+      .select("*")
+      .eq("household_id", hId)
+      .order("booking_date", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      setMessage("Journal konnte nicht geladen werden: " + error.message);
+      return;
+    }
+
+    setJournalEntries(data || []);
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     setMessage(tr(lang, "loginRunning"));
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) {
       setMessage("Login-Fehler: " + error.message);
       return;
@@ -1607,7 +1478,6 @@ export default function App() {
 
   async function handleLogout() {
     const { error } = await supabase.auth.signOut();
-
     if (error) {
       setMessage("Logout-Fehler: " + error.message);
       return;
@@ -1622,6 +1492,7 @@ export default function App() {
     setDebtAccounts([]);
     setBookingActions([]);
     setManualTransactions([]);
+    setJournalEntries([]);
     setSelectedRuleId("");
     setRuleForm(emptyRuleForm(selectedMonth));
     setMessage(tr(lang, "notLoggedIn"));
@@ -1660,10 +1531,10 @@ export default function App() {
   const summariesByMonth = useMemo(() => {
     const result = {};
     monthOptions.forEach((month) => {
-      result[month] = summarizeMonth(month, plannedWithActions, manualTransactions);
+      result[month] = summarizeMonth(month, plannedWithActions, journalEntries);
     });
     return result;
-  }, [monthOptions, plannedWithActions, manualTransactions]);
+  }, [monthOptions, plannedWithActions, journalEntries]);
 
   const selectedSummary =
     summariesByMonth[selectedMonth] || {
@@ -1675,26 +1546,21 @@ export default function App() {
       actualNet: 0,
       plannedItems: [],
       manualItems: [],
+      journalItems: [],
     };
 
   const cumulativeActualTotals = useMemo(() => {
     let income = 0;
     let expense = 0;
 
-    for (const action of bookingActions) {
-      if (action.status !== "confirmed") continue;
+    for (const entry of journalEntries) {
+      if (entry.is_void) continue;
+      if (!entry.booking_date) continue;
+      if (entry.booking_date > todayStr) continue;
 
-      const amount = Math.abs(Number(action.actual_amount ?? action.planned_amount ?? 0));
-      const type = action.actual_type || action.planned_type;
-
-      if (type === "income") income += amount;
-      else expense += amount;
-    }
-
-    for (const tx of manualTransactions) {
-      const amount = Math.abs(Number(tx.amount || 0));
-      if (tx.type === "income") income += amount;
-      else expense += amount;
+      const signed = Number(entry.amount_signed || 0);
+      if (signed >= 0) income += Math.abs(signed);
+      else expense += Math.abs(signed);
     }
 
     return {
@@ -1702,7 +1568,7 @@ export default function App() {
       expense: round2(expense),
       net: round2(income - expense),
     };
-  }, [bookingActions, manualTransactions]);
+  }, [journalEntries, todayStr]);
 
   const debtPlan = useMemo(
     () => buildDebtPlan(monthOptions, summariesByMonth, debtAccounts, currentMonthKey),
@@ -1744,11 +1610,11 @@ export default function App() {
       key: `manual_${item.id}`,
       source: "manual",
       rule_id: null,
-      month: item.booking_date?.slice(0, 7),
+      month: item.month_key,
       title: item.title,
-      type: item.type,
-      planned_amount: Number(item.amount || 0),
-      actual_amount: Number(item.amount || 0),
+      type: Number(item.amount_signed || 0) < 0 ? "expense" : "income",
+      planned_amount: Math.abs(Number(item.amount_signed || 0)),
+      actual_amount: Math.abs(Number(item.amount_signed || 0)),
       planned_date: item.booking_date,
       actual_date: item.booking_date,
       category: item.category || "Sonstiges",
@@ -1764,13 +1630,75 @@ export default function App() {
     });
   }, [selectedSummary]);
 
-  const incomeDisplayItems = useMemo(() => displayItems.filter((item) => item.type === "income"), [displayItems]);
-  const expenseDisplayItems = useMemo(() => displayItems.filter((item) => item.type === "expense"), [displayItems]);
+  const incomeDisplayItems = useMemo(
+    () => displayItems.filter((item) => item.type === "income"),
+    [displayItems]
+  );
+
+  const expenseDisplayItems = useMemo(
+    () => displayItems.filter((item) => item.type === "expense"),
+    [displayItems]
+  );
 
   const headerInfoMessage = useMemo(() => {
     const hiddenMessages = [tr(lang, "rulesLoaded"), tr(lang, "loggedIn")];
     return hiddenMessages.includes(message) ? "" : message;
   }, [message, lang]);
+
+  async function findExistingJournalRow(sourceKind, sourceId) {
+    const { data, error } = await supabase
+      .from("booking_journal")
+      .select("id, is_void")
+      .eq("household_id", householdId)
+      .eq("source_kind", sourceKind)
+      .eq("source_id", sourceId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    return data?.[0] || null;
+  }
+
+  async function syncBookingActionJournal(actionRow) {
+    const payload = {
+      household_id: householdId,
+      booking_date: actionRow.actual_date || actionRow.planned_date,
+      title: actionRow.planned_title || "Buchung",
+      amount_signed: amountSignedFromType(actionRow.planned_type, actionRow.actual_amount ?? actionRow.planned_amount ?? 0),
+      category: actionRow.planned_category || "Sonstiges",
+      account: actionRow.planned_account || "Hauptkonto",
+      source_kind: "booking_action",
+      source_id: actionRow.id,
+      planned_date: actionRow.planned_date,
+      rule_id: actionRow.rule_id,
+      note: actionRow.actual_note || "",
+      created_by: profile?.id || null,
+      is_void: false,
+    };
+
+    const existing = await findExistingJournalRow("booking_action", actionRow.id);
+
+    if (existing) {
+      const { error } = await supabase.from("booking_journal").update(payload).eq("id", existing.id);
+      if (error) throw error;
+      return;
+    }
+
+    const { error } = await supabase.from("booking_journal").insert(payload);
+    if (error) throw error;
+  }
+
+  async function voidBookingActionJournal(actionId) {
+    const existing = await findExistingJournalRow("booking_action", actionId);
+    if (!existing) return;
+
+    const { error } = await supabase
+      .from("booking_journal")
+      .update({ is_void: true })
+      .eq("id", existing.id);
+
+    if (error) throw error;
+  }
 
   async function persistBookingAction(item, actionType, override = {}) {
     if (!isOwner) {
@@ -1781,41 +1709,127 @@ export default function App() {
     const key = `${item.rule_id}_${item.planned_date}_${actionType}`;
     setSavingActionKey(key);
 
-    const payload = {
-      household_id: householdId,
-      rule_id: item.rule_id,
-      planned_date: item.planned_date,
-      planned_amount: Number(item.planned_amount),
-      planned_title: item.title,
-      planned_type: item.type,
-      planned_category: item.category,
-      planned_account: item.account,
-      planned_note: item.note,
-      status: actionType === "skip" ? "skipped" : "confirmed",
-      actual_date: item.planned_date,
-      actual_amount: actionType === "skip" ? 0 : Number(item.planned_amount),
-      actual_note: "",
-      created_by: profile?.id || null,
-      updated_at: new Date().toISOString(),
-      ...override,
-    };
+    try {
+      const payload = {
+        household_id: householdId,
+        rule_id: item.rule_id,
+        planned_date: item.planned_date,
+        planned_amount: Number(item.planned_amount),
+        planned_title: item.title,
+        planned_type: item.type,
+        planned_category: item.category,
+        planned_account: item.account,
+        planned_note: item.note,
+        status: actionType === "skip" ? "skipped" : "confirmed",
+        actual_date: actionType === "skip" ? item.planned_date : item.planned_date,
+        actual_amount: actionType === "skip" ? 0 : Number(item.planned_amount),
+        actual_note: "",
+        created_by: profile?.id || null,
+        updated_at: new Date().toISOString(),
+        ...override,
+      };
 
-    let error;
-    if (item.action_id) {
-      ({ error } = await supabase.from("booking_actions").update(payload).eq("id", item.action_id));
-    } else {
-      ({ error } = await supabase.from("booking_actions").insert(payload));
+      let savedAction;
+      if (item.action_id) {
+        const { data, error } = await supabase
+          .from("booking_actions")
+          .update(payload)
+          .eq("id", item.action_id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        savedAction = data;
+      } else {
+        const { data, error } = await supabase
+          .from("booking_actions")
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error) throw error;
+        savedAction = data;
+      }
+
+      if (savedAction.status === "confirmed") {
+        await syncBookingActionJournal(savedAction);
+      } else {
+        await voidBookingActionJournal(savedAction.id);
+      }
+
+      await Promise.all([loadBookingActions(householdId), loadJournalEntries(householdId)]);
+      setMessage(tr(lang, "bookingActionSaved"));
+    } catch (err) {
+      setMessage("Fehler beim Speichern: " + err.message);
+    } finally {
+      setSavingActionKey("");
     }
+  }
 
-    setSavingActionKey("");
-
-    if (error) {
-      setMessage("Fehler beim Speichern: " + error.message);
+  async function handleUndoConfirm(item) {
+    if (!isOwner || !item.action_id) {
+      setMessage(tr(lang, "onlyOwner"));
       return;
     }
 
-    await loadBookingActions(householdId);
-    setMessage(tr(lang, "bookingActionSaved"));
+    const key = `${item.rule_id}_${item.planned_date}_undo`;
+    setSavingActionKey(key);
+
+    try {
+      const { error } = await supabase
+        .from("booking_actions")
+        .update({
+          status: "open",
+          actual_amount: null,
+          actual_date: null,
+          actual_note: "",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.action_id);
+
+      if (error) throw error;
+
+      await voidBookingActionJournal(item.action_id);
+      await Promise.all([loadBookingActions(householdId), loadJournalEntries(householdId)]);
+      setMessage(tr(lang, "bookingUndone"));
+    } catch (err) {
+      setMessage("Fehler beim Zurücknehmen: " + err.message);
+    } finally {
+      setSavingActionKey("");
+    }
+  }
+
+  async function handleReopen(item) {
+    if (!isOwner || !item.action_id) {
+      setMessage(tr(lang, "onlyOwner"));
+      return;
+    }
+
+    const key = `${item.rule_id}_${item.planned_date}_reopen`;
+    setSavingActionKey(key);
+
+    try {
+      const { error } = await supabase
+        .from("booking_actions")
+        .update({
+          status: "open",
+          actual_amount: null,
+          actual_date: null,
+          actual_note: "",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.action_id);
+
+      if (error) throw error;
+
+      await voidBookingActionJournal(item.action_id);
+      await Promise.all([loadBookingActions(householdId), loadJournalEntries(householdId)]);
+      setMessage(tr(lang, "bookingReopened"));
+    } catch (err) {
+      setMessage("Fehler beim Wiederöffnen: " + err.message);
+    } finally {
+      setSavingActionKey("");
+    }
   }
 
   function openActionEditor(item) {
@@ -1849,6 +1863,35 @@ export default function App() {
     closeActionEditor();
   }
 
+  async function syncManualTransactionJournal(tx) {
+    const payload = {
+      household_id: householdId,
+      booking_date: tx.booking_date,
+      title: tx.title || "Manuelle Buchung",
+      amount_signed: amountSignedFromType(tx.type, tx.amount),
+      category: tx.category || "Sonstiges",
+      account: tx.account || "Hauptkonto",
+      source_kind: "manual_transaction",
+      source_id: tx.id,
+      planned_date: null,
+      rule_id: null,
+      note: tx.note || "",
+      created_by: profile?.id || null,
+      is_void: false,
+    };
+
+    const existing = await findExistingJournalRow("manual_transaction", tx.id);
+
+    if (existing) {
+      const { error } = await supabase.from("booking_journal").update(payload).eq("id", existing.id);
+      if (error) throw error;
+      return;
+    }
+
+    const { error } = await supabase.from("booking_journal").insert(payload);
+    if (error) throw error;
+  }
+
   async function handleSaveManual(e) {
     e.preventDefault();
 
@@ -1875,16 +1918,22 @@ export default function App() {
       return;
     }
 
-    const { error } = await supabase.from("manual_transactions").insert(payload);
+    try {
+      const { data: insertedTx, error } = await supabase
+        .from("manual_transactions")
+        .insert(payload)
+        .select()
+        .single();
 
-    if (error) {
-      setMessage("Fehler beim Speichern: " + error.message);
-      return;
+      if (error) throw error;
+
+      await syncManualTransactionJournal(insertedTx);
+      setManualForm(emptyManualForm(selectedMonth));
+      await Promise.all([loadManualTransactions(householdId), loadJournalEntries(householdId)]);
+      setMessage(tr(lang, "bookingSaved"));
+    } catch (err) {
+      setMessage("Fehler beim Speichern: " + err.message);
     }
-
-    setManualForm(emptyManualForm(selectedMonth));
-    await loadManualTransactions(householdId);
-    setMessage(tr(lang, "bookingSaved"));
   }
 
   function handleSelectRule(id) {
@@ -1908,7 +1957,6 @@ export default function App() {
     }
 
     const payload = formToRulePayload(ruleForm, householdId);
-
     if (!payload.title || !Number.isFinite(payload.amount) || ruleForm.amount === "") {
       setMessage("Titel oder Betrag ungültig.");
       return;
@@ -1937,7 +1985,6 @@ export default function App() {
     }
 
     const { error } = await supabase.from("rules").delete().eq("id", ruleForm.id);
-
     if (error) {
       setMessage("Fehler beim Löschen: " + error.message);
       return;
@@ -1957,7 +2004,7 @@ export default function App() {
   }
 
   async function handleRequestNotifications() {
-    if (!notificationsSupported) {
+    if (!("Notification" in window)) {
       setNotificationPermission("unsupported");
       return;
     }
@@ -2002,14 +2049,14 @@ export default function App() {
 
       const manual = summary.manualItems.map((item) => ({
         source: "manual",
-        type: item.type,
+        type: Number(item.amount_signed || 0) < 0 ? "expense" : "income",
         planned_date: item.booking_date,
         title: item.title,
         category: item.category || "Sonstiges",
         account: item.account || "Hauptkonto",
         status: "confirmed",
-        planned_amount: item.amount,
-        actual_amount: item.amount,
+        planned_amount: Math.abs(Number(item.amount_signed || 0)),
+        actual_amount: Math.abs(Number(item.amount_signed || 0)),
         actual_note: item.note || "",
         note: item.note || "",
       }));
@@ -2118,6 +2165,10 @@ export default function App() {
 
                   <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.92)" }}>
                     {tr(lang, "selectedMonthLabel")}: {formatMonth(selectedMonth, lang)}
+                  </div>
+
+                  <div style={{ marginTop: 6, fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.92)" }}>
+                    {tr(lang, "tillToday")}
                   </div>
 
                   {ui.showClock ? (
@@ -2235,6 +2286,8 @@ export default function App() {
                       onConfirm={(booking) => persistBookingAction(booking, "confirm")}
                       onEdit={openActionEditor}
                       onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      onUndoConfirm={handleUndoConfirm}
+                      onReopen={handleReopen}
                       savingActionKey={savingActionKey}
                     />
                   ))
@@ -2259,6 +2312,8 @@ export default function App() {
                       onConfirm={(booking) => persistBookingAction(booking, "confirm")}
                       onEdit={openActionEditor}
                       onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      onUndoConfirm={handleUndoConfirm}
+                      onReopen={handleReopen}
                       savingActionKey={savingActionKey}
                     />
                   ))
@@ -2283,6 +2338,8 @@ export default function App() {
                       onConfirm={(booking) => persistBookingAction(booking, "confirm")}
                       onEdit={openActionEditor}
                       onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      onUndoConfirm={handleUndoConfirm}
+                      onReopen={handleReopen}
                       savingActionKey={savingActionKey}
                     />
                   ))
@@ -2354,39 +2411,33 @@ export default function App() {
                 <ComparisonBar
                   styles={styles}
                   palette={palette}
-                  lang={lang}
                   label={tr(lang, "income")}
                   planned={selectedSummary.plannedIncome}
                   actual={selectedSummary.actualIncome}
+                  lang={lang}
                 />
-
                 <ComparisonBar
                   styles={styles}
                   palette={palette}
-                  lang={lang}
                   label={tr(lang, "expense")}
                   planned={selectedSummary.plannedExpense}
                   actual={selectedSummary.actualExpense}
+                  lang={lang}
                   mode="expense"
                 />
-
                 <ComparisonBar
                   styles={styles}
                   palette={palette}
-                  lang={lang}
                   label={tr(lang, "monthlyNet")}
                   planned={Math.abs(selectedSummary.plannedNet)}
                   actual={Math.abs(selectedSummary.actualNet)}
+                  lang={lang}
                   mode={selectedSummary.actualNet < 0 ? "expense" : "normal"}
                 />
               </div>
             </Section>
 
-            <Section
-              styles={styles}
-              title={tr(lang, "incomeList")}
-              subtitle={`${tr(lang, "plusGreenHint")} · ${formatMonth(selectedMonth, lang)}`}
-            >
+            <Section styles={styles} title={tr(lang, "incomeList")} subtitle={`${tr(lang, "plusGreenHint")} · ${formatMonth(selectedMonth, lang)}`}>
               <div style={{ display: "grid", gap: 10 }}>
                 {incomeDisplayItems.length ? (
                   incomeDisplayItems.map((item) => (
@@ -2401,6 +2452,8 @@ export default function App() {
                       onConfirm={(booking) => persistBookingAction(booking, "confirm")}
                       onEdit={openActionEditor}
                       onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      onUndoConfirm={handleUndoConfirm}
+                      onReopen={handleReopen}
                       savingActionKey={savingActionKey}
                     />
                   ))
@@ -2410,11 +2463,7 @@ export default function App() {
               </div>
             </Section>
 
-            <Section
-              styles={styles}
-              title={tr(lang, "expensesList")}
-              subtitle={`${tr(lang, "minusRedHint")} · ${formatMonth(selectedMonth, lang)}`}
-            >
+            <Section styles={styles} title={tr(lang, "expensesList")} subtitle={`${tr(lang, "minusRedHint")} · ${formatMonth(selectedMonth, lang)}`}>
               <div style={{ display: "grid", gap: 10 }}>
                 {expenseDisplayItems.length ? (
                   expenseDisplayItems.map((item) => (
@@ -2429,6 +2478,8 @@ export default function App() {
                       onConfirm={(booking) => persistBookingAction(booking, "confirm")}
                       onEdit={openActionEditor}
                       onSkip={(booking) => persistBookingAction(booking, "skip")}
+                      onUndoConfirm={handleUndoConfirm}
+                      onReopen={handleReopen}
                       savingActionKey={savingActionKey}
                     />
                   ))
@@ -2442,11 +2493,7 @@ export default function App() {
 
         {tab === "book" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <Section
-              styles={styles}
-              title={tr(lang, "bookNow")}
-              subtitle={isOwner ? tr(lang, "mobileHint") : tr(lang, "onlyOwner")}
-            >
+            <Section styles={styles} title={tr(lang, "bookNow")} subtitle={isOwner ? tr(lang, "mobileHint") : tr(lang, "onlyOwner")}>
               <form onSubmit={handleSaveManual} style={{ display: "grid", gap: 10 }}>
                 <input
                   style={styles.input}
@@ -2455,7 +2502,6 @@ export default function App() {
                   onChange={(e) => setManualForm((prev) => ({ ...prev, booking_date: e.target.value }))}
                   disabled={!isOwner}
                 />
-
                 <input
                   style={styles.input}
                   value={manualForm.title}
@@ -2464,7 +2510,6 @@ export default function App() {
                   required
                   disabled={!isOwner}
                 />
-
                 <div style={styles.grid2}>
                   <select
                     style={styles.input}
@@ -2475,7 +2520,6 @@ export default function App() {
                     <option value="expense">{tr(lang, "expense")}</option>
                     <option value="income">{tr(lang, "income")}</option>
                   </select>
-
                   <input
                     style={styles.input}
                     type="number"
@@ -2487,7 +2531,6 @@ export default function App() {
                     disabled={!isOwner}
                   />
                 </div>
-
                 <div style={styles.grid2}>
                   <input
                     style={styles.input}
@@ -2504,7 +2547,6 @@ export default function App() {
                     disabled={!isOwner}
                   />
                 </div>
-
                 <textarea
                   style={styles.textarea}
                   value={manualForm.note}
@@ -2512,7 +2554,6 @@ export default function App() {
                   placeholder={tr(lang, "note")}
                   disabled={!isOwner}
                 />
-
                 <button type="submit" style={{ ...styles.button, ...styles.buttonPrimary }} disabled={!isOwner}>
                   {tr(lang, "addBooking")}
                 </button>
@@ -2553,7 +2594,7 @@ export default function App() {
                         </div>
 
                         <div>
-                          <div style={styles.subtle}>Ende</div>
+                          <div style={styles.subtle}>{tr(lang, "end")}</div>
                           <div style={{ fontWeight: 800, color: palette.danger }}>
                             {formatSignedCurrency(-acc.totalEnd, true)}
                           </div>
@@ -2581,12 +2622,7 @@ export default function App() {
                     <div style={styles.grid2}>
                       <div>
                         <div style={styles.subtle}>{tr(lang, "availableBeforeDebt")}</div>
-                        <div
-                          style={{
-                            fontWeight: 800,
-                            color: row.availableBeforeDebt >= 0 ? palette.success : palette.danger,
-                          }}
-                        >
+                        <div style={{ fontWeight: 800, color: row.availableBeforeDebt >= 0 ? palette.success : palette.danger }}>
                           {formatSignedCurrency(row.availableBeforeDebt, true)}
                         </div>
                       </div>
@@ -2806,14 +2842,6 @@ export default function App() {
                     >
                       Deutsch
                     </button>
-
-                    <button
-                      type="button"
-                      style={ui.lang === "ru" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
-                      onClick={() => setUi((prev) => ({ ...prev, lang: "ru" }))}
-                    >
-                      Русский
-                    </button>
                   </div>
                 </div>
 
@@ -2827,7 +2855,6 @@ export default function App() {
                     >
                       {tr(lang, "light")}
                     </button>
-
                     <button
                       type="button"
                       style={ui.theme === "dark" ? { ...styles.button, ...styles.buttonPrimary } : styles.button}
@@ -2848,14 +2875,12 @@ export default function App() {
                   onChange={(e) => setUi((prev) => ({ ...prev, headerTitle: e.target.value }))}
                   placeholder={tr(lang, "headerTitle")}
                 />
-
                 <textarea
                   style={styles.textarea}
                   value={ui.headerSubtitle}
                   onChange={(e) => setUi((prev) => ({ ...prev, headerSubtitle: e.target.value }))}
                   placeholder={tr(lang, "headerSubtitle")}
                 />
-
                 <div style={styles.row}>
                   <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
                     {tr(lang, "uploadImage")}
@@ -2866,14 +2891,12 @@ export default function App() {
                       onChange={(e) => handleImageUpload("headerImage", e)}
                     />
                   </label>
-
                   {ui.headerImage ? (
                     <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, headerImage: "" }))}>
                       {tr(lang, "removeImage")}
                     </button>
                   ) : null}
                 </div>
-
                 <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>
                   <input
                     type="checkbox"
@@ -2896,16 +2919,13 @@ export default function App() {
                     )}
                     <div>
                       <div style={{ fontWeight: 800 }}>{tr(lang, "me")}</div>
-                      <div style={styles.subtle}>{tr(lang, "uploadImage")}</div>
                     </div>
                   </div>
-
                   <div style={styles.row}>
                     <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
                       {tr(lang, "uploadImage")}
                       <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleImageUpload("profileMe", e)} />
                     </label>
-
                     {ui.profileMe ? (
                       <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileMe: "" }))}>
                         {tr(lang, "removeImage")}
@@ -2923,16 +2943,13 @@ export default function App() {
                     )}
                     <div>
                       <div style={{ fontWeight: 800 }}>{tr(lang, "wife")}</div>
-                      <div style={styles.subtle}>{tr(lang, "uploadImage")}</div>
                     </div>
                   </div>
-
                   <div style={styles.row}>
                     <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
                       {tr(lang, "uploadImage")}
                       <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleImageUpload("profileWife", e)} />
                     </label>
-
                     {ui.profileWife ? (
                       <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, profileWife: "" }))}>
                         {tr(lang, "removeImage")}
@@ -2956,7 +2973,7 @@ export default function App() {
                         : tr(lang, "unsupported")}
                 </div>
 
-                {notificationsSupported ? (
+                {"Notification" in window ? (
                   <button type="button" style={styles.button} onClick={handleRequestNotifications}>
                     {tr(lang, "enableNotifications")}
                   </button>
@@ -2975,7 +2992,6 @@ export default function App() {
                   <br />
                   {tr(lang, "role")}: {roleLabel(lang, memberRole)}
                 </div>
-
                 <button type="button" style={styles.button} onClick={handleLogout}>
                   {tr(lang, "logout")}
                 </button>
