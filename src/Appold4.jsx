@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 
-const UI_STORAGE_KEY = "cashflow-ui-v7";
+const UI_STORAGE_KEY = "cashflow-ui-v6";
 
 const texts = {
   de: {
@@ -27,10 +27,12 @@ const texts = {
     viewer: "Nur Ansicht",
     unknown: "unbekannt",
     household: "Haushalt",
+    status: "Status",
     amount: "Betrag",
     actualAmount: "Tatsächlicher Betrag",
     actualDate: "Tatsächliches Datum",
     title: "Bezeichnung",
+    type: "Typ",
     income: "Einnahme",
     expense: "Ausgabe",
     category: "Kategorie",
@@ -39,6 +41,7 @@ const texts = {
     save: "Speichern",
     saving: "Speichere ...",
     cancel: "Abbrechen",
+    confirm: "Bestätigen",
     skip: "Überspringen",
     editAmount: "Anpassen",
     undoConfirm: "Zurücknehmen",
@@ -52,10 +55,14 @@ const texts = {
     next7Days: "Nächste 7 Tage",
     overdueItems: "Überfällig",
     noTasks: "Keine offenen Buchungen in diesem Bereich.",
+    monthlyIncome: "Einnahmen im Monat",
+    monthlyExpense: "Ausgaben im Monat",
+    monthlyNet: "Monatssaldo",
     reserveEnd: "Reserve Monatsende",
     totalDebt: "Restschuld Monatsende",
     availableBeforeDebt: "Verfügbar vor Tilgung",
     paymentToDebt: "Tilgung gesamt",
+    planOverview: "Monatsplan",
     bookNow: "Manuelle Buchung",
     addBooking: "Buchung anlegen",
     ruleSaved: "Regel gespeichert.",
@@ -79,12 +86,15 @@ const texts = {
     removeImage: "Bild entfernen",
     chooseRule: "Bitte Regel auswählen",
     newRule: "Neue Regel",
+    editRule: "Regel bearbeiten",
     deleteRule: "Löschen",
+    frequency: "Rhythmus",
     monthly: "Monatlich",
     weekly: "Wöchentlich",
     everyOtherMonth: "Alle 2 Monate",
     customMonths: "Bestimmte Monate",
     dayOfMonth: "Tag im Monat",
+    weekday: "Wochentag",
     customMonthsHint: "z. B. 2026-06, 2026-12",
     monday: "Montag",
     tuesday: "Dienstag",
@@ -113,6 +123,7 @@ const texts = {
     headerSettings: "Header anpassen",
     headerTitle: "Header-Titel",
     headerSubtitle: "Header-Untertitel",
+    headerImage: "Header-Bild",
     currentTime: "Aktuelle Uhrzeit",
     showClock: "Uhrzeit anzeigen",
     exportMonthCsv: "Monat als CSV exportieren",
@@ -1653,10 +1664,7 @@ export default function App() {
       household_id: householdId,
       booking_date: actionRow.actual_date || actionRow.planned_date,
       title: actionRow.planned_title || "Buchung",
-      amount_signed: amountSignedFromType(
-        actionRow.planned_type,
-        actionRow.actual_amount ?? actionRow.planned_amount ?? 0
-      ),
+      amount_signed: amountSignedFromType(actionRow.planned_type, actionRow.actual_amount ?? actionRow.planned_amount ?? 0),
       category: actionRow.planned_category || "Sonstiges",
       account: actionRow.planned_account || "Hauptkonto",
       source_kind: "booking_action",
@@ -1770,7 +1778,13 @@ export default function App() {
     try {
       const { error } = await supabase
         .from("booking_actions")
-        .delete()
+        .update({
+          status: "open",
+          actual_amount: null,
+          actual_date: null,
+          actual_note: "",
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", item.action_id);
 
       if (error) throw error;
@@ -1797,7 +1811,13 @@ export default function App() {
     try {
       const { error } = await supabase
         .from("booking_actions")
-        .delete()
+        .update({
+          status: "open",
+          actual_amount: null,
+          actual_date: null,
+          actual_note: "",
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", item.action_id);
 
       if (error) throw error;
@@ -2861,6 +2881,22 @@ export default function App() {
                   onChange={(e) => setUi((prev) => ({ ...prev, headerSubtitle: e.target.value }))}
                   placeholder={tr(lang, "headerSubtitle")}
                 />
+                <div style={styles.row}>
+                  <label style={{ ...styles.button, ...styles.buttonSoft, cursor: "pointer" }}>
+                    {tr(lang, "uploadImage")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => handleImageUpload("headerImage", e)}
+                    />
+                  </label>
+                  {ui.headerImage ? (
+                    <button type="button" style={styles.button} onClick={() => setUi((prev) => ({ ...prev, headerImage: "" }))}>
+                      {tr(lang, "removeImage")}
+                    </button>
+                  ) : null}
+                </div>
                 <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>
                   <input
                     type="checkbox"
